@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  PRINTER_OWNER
+  ADMIN
+}
+
+enum RfqState {
+  DRAFT
+  SUBMITTED
+  OPEN_FOR_QUOTES
+  QUOTES_RECEIVED
+  QUOTE_SELECTED
+  EXPIRED
+  CANCELLED
+  REJECTED
+}
+
+enum QuoteState {
+  DRAFT
+  SUBMITTED
+  VISIBLE_TO_BUYER
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum RfqFileState {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         UserRole
+  displayName  String?
+  sessions     Session[]
+  rfqs         Rfq[]     @relation("RfqBuyer")
+  quotes       Quote[]   @relation("QuoteSupplier")
+  auditEvents  AuditEvent[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, expiresAt])
+}
+
+model Rfq {
+  id                     String    @id @default(cuid())
+  buyerId                String
+  idempotencyKey         String
+  title                  String
+  state                  RfqState  @default(DRAFT)
+  description            String?
+  quantity               Int?
+  material               String?
+  deadline               DateTime?
+  buyer                  User      @relation("RfqBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  files                  RfqFile[]
+  quotes                 Quote[]
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@unique([buyerId, idempotencyKey])
+  @@index([buyerId, state, createdAt])
+  @@index([state, createdAt])
+}
+
+model RfqFile {
+  id               String        @id @default(cuid())
+  rfqId            String
+  storageKey       String        @unique
+  originalFilename String
+  contentType      String
+  byteSize         Int
+  state            RfqFileState  @default(PENDING)
+  rfq              Rfq           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([rfqId, state])
+}
+
+model Quote {
+  id             String     @id @default(cuid())
+  rfqId          String
+  supplierId     String
+  state          QuoteState @default(DRAFT)
+  totalAmountInr Int
+  currency       String     @default("INR")
+  deliveryDate   DateTime?
+  expiresAt      DateTime?
+  notes          String?
+  rfq            Rfq        @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplier       User       @relation("QuoteSupplier", fields: [supplierId], references: [id], onDelete: Restrict)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([rfqId, state, createdAt])
+  @@index([supplierId, state, createdAt])
+}
+
+model AuditEvent {
+  id           String    @id @default(cuid())
+  actorUserId  String?
+  entityType   String
+  entityId     String
+  action       String
+  metadata     Json      @default("{}")
+  actor        User?     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+}
