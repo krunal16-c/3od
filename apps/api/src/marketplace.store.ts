@@ -1,6 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import type { Quote, Rfq, RfqFile, Session, User, UserRole } from '@3od/domain';
+import type { Printer, Quote, Rfq, RfqFile, Session, User, UserRole, VendorContact, VendorProfile } from '@3od/domain';
 import { QuoteState, RfqState } from '@3od/domain';
 
 export type CreateUserInput = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
@@ -8,6 +8,9 @@ export type CreateSessionInput = Omit<Session, 'id' | 'createdAt' | 'updatedAt'>
 export type CreateRfqInput = Omit<Rfq, 'id' | 'createdAt' | 'updatedAt'>;
 export type CreateQuoteInput = Omit<Quote, 'id' | 'createdAt' | 'updatedAt'>;
 export type CreateRfqFileInput = Omit<RfqFile, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateVendorProfileInput = Omit<VendorProfile, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreatePrinterInput = Omit<Printer, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateVendorContactInput = Omit<VendorContact, 'id' | 'createdAt' | 'updatedAt'>;
 
 export abstract class MarketplaceStore {
   abstract findUserByEmail(email: string): Promise<User | null>;
@@ -27,6 +30,13 @@ export abstract class MarketplaceStore {
   abstract createQuote(input: CreateQuoteInput): Promise<Quote>;
   abstract updateQuote(id: string, patch: Partial<Quote>): Promise<Quote | null>;
   abstract createRfqFile(input: CreateRfqFileInput): Promise<RfqFile>;
+  abstract findVendorProfileByUserId(userId: string): Promise<VendorProfile | null>;
+  abstract findVendorProfileBySlug(slug: string): Promise<VendorProfile | null>;
+  abstract upsertVendorProfile(input: CreateVendorProfileInput): Promise<VendorProfile>;
+  abstract listPrintersByVendor(vendorId: string): Promise<readonly Printer[]>;
+  abstract createPrinter(input: CreatePrinterInput): Promise<Printer>;
+  abstract createVendorContact(input: CreateVendorContactInput): Promise<VendorContact>;
+  abstract listVendorContacts(vendorId: string): Promise<readonly VendorContact[]>;
 }
 
 @Injectable()
@@ -36,6 +46,9 @@ export class InMemoryMarketplaceStore extends MarketplaceStore {
   private readonly rfqs = new Map<string, Rfq>();
   private readonly quotes = new Map<string, Quote>();
   private readonly files = new Map<string, RfqFile>();
+  private readonly vendorProfiles = new Map<string, VendorProfile>();
+  private readonly printers = new Map<string, Printer>();
+  private readonly vendorContacts = new Map<string, VendorContact>();
   private sequence = 0;
 
   private nextId(prefix: string) { return `${prefix}-${++this.sequence}`; }
@@ -56,6 +69,13 @@ export class InMemoryMarketplaceStore extends MarketplaceStore {
   async createQuote(input: CreateQuoteInput) { const existing = [...this.quotes.values()].find((quote) => quote.rfqId === input.rfqId && quote.supplierId === input.supplierId && quote.state !== QuoteState.REJECTED); if (existing) return existing; const now = new Date(); const quote = { ...input, id: this.nextId('quote'), createdAt: now, updatedAt: now }; this.quotes.set(quote.id, quote); return quote; }
   async updateQuote(id: string, patch: Partial<Quote>) { const current = this.quotes.get(id); if (!current) return null; const updated = { ...current, ...patch, updatedAt: new Date() }; this.quotes.set(id, updated); return updated; }
   async createRfqFile(input: CreateRfqFileInput) { const now = new Date(); const file = { ...input, id: this.nextId('rfq-file'), createdAt: now, updatedAt: now }; this.files.set(file.id, file); return file; }
+  async findVendorProfileByUserId(userId: string) { return [...this.vendorProfiles.values()].find((profile) => profile.userId === userId) ?? null; }
+  async findVendorProfileBySlug(slug: string) { return [...this.vendorProfiles.values()].find((profile) => profile.slug === slug && profile.isPublished) ?? null; }
+  async upsertVendorProfile(input: CreateVendorProfileInput) { const existing = await this.findVendorProfileByUserId(input.userId); const now = new Date(); const profile = { ...input, id: existing?.id ?? this.nextId('vendor'), createdAt: existing?.createdAt ?? now, updatedAt: now }; this.vendorProfiles.set(profile.id, profile); return profile; }
+  async listPrintersByVendor(vendorId: string) { return [...this.printers.values()].filter((printer) => printer.vendorId === vendorId && printer.isActive); }
+  async createPrinter(input: CreatePrinterInput) { const now = new Date(); const printer = { ...input, id: this.nextId('printer'), createdAt: now, updatedAt: now }; this.printers.set(printer.id, printer); return printer; }
+  async createVendorContact(input: CreateVendorContactInput) { const now = new Date(); const contact = { ...input, id: this.nextId('contact'), createdAt: now, updatedAt: now }; this.vendorContacts.set(contact.id, contact); return contact; }
+  async listVendorContacts(vendorId: string) { return [...this.vendorContacts.values()].filter((contact) => contact.vendorId === vendorId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); }
 }
 
 export function hashToken(token: string) { return createHash('sha256').update(token).digest('hex'); }

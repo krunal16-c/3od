@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req, Res } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { getServerEnv } from '@3od/config/env/server';
-import { createQuoteInputSchema, createRfqInputSchema, loginInputSchema, signupInputSchema } from '@3od/contracts';
+import { createQuoteInputSchema, createRfqInputSchema, loginInputSchema, printerInputSchema, signupInputSchema, vendorContactInputSchema, vendorProfileInputSchema } from '@3od/contracts';
 import { QuoteState, RfqState, transitionQuote, transitionRfq } from '@3od/domain';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { hashPassword, hashToken, MarketplaceStore, publicUser, roleForDomain, verifyPassword } from './marketplace.store.js';
@@ -66,6 +66,56 @@ export class MarketplaceController {
 
   @Get('/auth/me')
   async me(@Req() request: RequestWithUser) { return { user: publicUser((await this.current(request)).user) }; }
+
+  @Post('/vendor/profile')
+  @HttpCode(201)
+  async saveVendorProfile(@Req() request: RequestWithUser, @Body() body: unknown) {
+    const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden();
+    const parsed = vendorProfileInputSchema.safeParse(body);
+    const data = parsed.success ? parsed.data : badRequest('Please provide a valid vendor profile.');
+    return { vendor: await this.store.upsertVendorProfile({ userId: user.id, ...data, isPublished: true }) };
+  }
+
+  @Post('/vendor/printers')
+  @HttpCode(201)
+  async addPrinter(@Req() request: RequestWithUser, @Body() body: unknown) {
+    const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden();
+    const vendor = await this.store.findVendorProfileByUserId(user.id); if (!vendor) fail(409, 'VENDOR_PROFILE_REQUIRED', 'Create your vendor profile before adding a printer.');
+    const parsed = printerInputSchema.safeParse(body);
+    const data = parsed.success ? parsed.data : badRequest('Please provide valid printer details.');
+    return { printer: await this.store.createPrinter({ vendorId: vendor!.id, ...data, isActive: true }) };
+  }
+
+  @Get('/vendor/printers')
+  async myPrinters(@Req() request: RequestWithUser) {
+    const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden();
+    const vendor = await this.store.findVendorProfileByUserId(user.id); if (!vendor) return { printers: [] };
+    return { printers: await this.store.listPrintersByVendor(vendor.id) };
+  }
+
+  @Get('/vendor/contacts')
+  async vendorContacts(@Req() request: RequestWithUser) {
+    const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden();
+    const vendor = await this.store.findVendorProfileByUserId(user.id); if (!vendor) return { contacts: [] };
+    return { contacts: await this.store.listVendorContacts(vendor.id) };
+  }
+
+  @Get('/vendors/:slug')
+  async publicVendor(@Param('slug') slug: string) {
+    const vendor = await this.store.findVendorProfileBySlug(slug); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
+    const { userId: _userId, ...publicProfile } = vendor!;
+    return { vendor: publicProfile, printers: await this.store.listPrintersByVendor(vendor!.id) };
+  }
+
+  @Post('/vendors/:slug/contact')
+  @HttpCode(201)
+  async contactVendor(@Req() request: RequestWithUser, @Param('slug') slug: string, @Body() body: unknown) {
+    const { user } = await this.current(request); if (user.role !== 'BUYER') forbidden();
+    const vendor = await this.store.findVendorProfileBySlug(slug); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
+    const parsed = vendorContactInputSchema.safeParse(body);
+    const data = parsed.success ? parsed.data : badRequest('Please add a message before contacting this vendor.');
+    return { contact: await this.store.createVendorContact({ vendorId: vendor!.id, buyerId: user.id, ...data, status: 'NEW' }) };
+  }
 
   @Post('/rfqs')
   async createRfq(@Req() request: RequestWithUser, @Headers('idempotency-key') headerKey: string | undefined, @Body() body: unknown) {

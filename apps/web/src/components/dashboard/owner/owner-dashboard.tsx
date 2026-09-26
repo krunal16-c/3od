@@ -35,7 +35,7 @@ export function OwnerDashboard() {
         <div className="od-content">
           <section className="od-welcome-row">
             <div><p className="od-kicker">Tuesday, 22 September 2026 <span className="od-kicker-rule" /> Bengaluru, IN</p><h1>Good morning, Arjun<span>.</span></h1><p className="od-subtitle">Your machines are ready. Here’s what’s moving today.</p></div>
-            <div className="od-welcome-actions"><Link className="od-text-link" href="/for-printer-owners">Owner guide <Icon name="external" size={14} /></Link><Link className="od-primary-button" href="#rfq-inbox"><span>View new RFQs</span><Icon name="arrow" size={16} /></Link></div>
+            <div className="od-welcome-actions"><Link className="od-text-link" href="/for-printer-owners">Owner guide <Icon name="external" size={14} /></Link><Link className="od-primary-button" href="/vendor"><span>Manage public page</span><Icon name="arrow" size={16} /></Link></div>
           </section>
 
           <section className="od-availability" aria-label="Printer availability">

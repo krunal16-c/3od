@@ -22,7 +22,7 @@ describe('server environment', () => {
   it('provides safe local defaults outside production', () => {
     expect(getServerEnv({ NODE_ENV: 'development' })).toMatchObject({
       APP_ORIGIN: 'http://localhost:3000',
-      WEB_ORIGINS: ['http://localhost:3000'],
+      WEB_ORIGINS: expect.arrayContaining(['http://localhost:3000', 'http://localhost:3002', 'http://127.0.0.1:3002']),
       SESSION_SECRET: expect.any(String),
     });
   });

@@ -39,6 +39,13 @@ enum RfqFileState {
   REJECTED
 }
 
+enum VendorContactStatus {
+  NEW
+  READ
+  REPLIED
+  CLOSED
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -49,10 +56,63 @@ model User {
   rfqs         Rfq[]     @relation("RfqBuyer")
   quotes       Quote[]   @relation("QuoteSupplier")
   auditEvents  AuditEvent[]
+  vendorProfile  VendorProfile?
+  buyerContacts  VendorContact[] @relation("BuyerContacts")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([role])
+}
+
+model VendorProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  slug         String   @unique
+  businessName String
+  bio          String?
+  city         String?
+  state        String?
+  serviceAreas String[] @default([])
+  isPublished  Boolean  @default(true)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printers     Printer[]
+  vendorContacts VendorContact[] @relation("VendorContacts")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([city, state, isPublished])
+}
+
+model Printer {
+  id               String   @id @default(cuid())
+  vendorId         String
+  name             String
+  model            String?
+  technologies     String[] @default([])
+  materials        String[] @default([])
+  minOrderQuantity Int      @default(1)
+  isActive         Boolean  @default(true)
+  vendor           VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([vendorId, isActive])
+}
+
+model VendorContact {
+  id        String              @id @default(cuid())
+  vendorId  String
+  buyerId   String
+  message   String
+  phone     String?
+  status    VendorContactStatus @default(NEW)
+  vendor    VendorProfile       @relation("VendorContacts", fields: [vendorId], references: [id], onDelete: Cascade)
+  buyer     User                @relation("BuyerContacts", fields: [buyerId], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([vendorId, status, createdAt])
+  @@index([buyerId, createdAt])
 }
 
 model Session {

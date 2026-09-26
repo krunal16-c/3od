@@ -32,6 +32,9 @@ export type CreateRfqInput = {
 export type AuthResponse = { user: ApiUser };
 export type CreateRfqResponse = { rfq: { id: string } };
 export type UploadIntentResponse = { uploadUrl: string; key: string; expiresInSeconds: number };
+export type VendorProfile = { id: string; slug: string; businessName: string; bio?: string | null; city?: string | null; state?: string | null; serviceAreas: string[]; isPublished: boolean };
+export type PrinterListing = { id: string; name: string; model?: string | null; technologies: string[]; materials: string[]; minOrderQuantity: number; isActive: boolean };
+export type VendorContact = { id: string; message: string; phone?: string | null; status: string; createdAt: string };
 
 type ApiErrorPayload = {
   statusCode?: unknown;
@@ -132,3 +135,8 @@ export async function uploadDesign(uploadUrl: string, file: File) {
 export function dashboardPathForUser(user: Pick<ApiUser, 'role'>) {
   return user.role === 'buyer' ? '/dashboard/buyer' : '/dashboard/owner';
 }
+
+export function saveVendorProfile(input: { slug: string; businessName: string; bio?: string; city?: string; state?: string; serviceAreas: string[] }) { return request<{ vendor: VendorProfile }>('/vendor/profile', { method: 'POST', body: input }); }
+export function createPrinter(input: { name: string; model?: string; technologies: string[]; materials: string[]; minOrderQuantity: number }) { return request<{ printer: PrinterListing }>('/vendor/printers', { method: 'POST', body: input }); }
+export function getVendorPage(slug: string) { return request<{ vendor: VendorProfile; printers: PrinterListing[] }>(`/vendors/${encodeURIComponent(slug)}`, { method: 'GET' }); }
+export function contactVendor(slug: string, input: { message: string; phone?: string }) { return request<{ contact: VendorContact }>(`/vendors/${encodeURIComponent(slug)}/contact`, { method: 'POST', body: input }); }

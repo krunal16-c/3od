@@ -1,6 +1,7 @@
 import { QuoteState, RfqState } from './state';
 
 export type UserRole = 'BUYER' | 'PRINTER_OWNER' | 'ADMIN';
+export type VendorContactStatus = 'NEW' | 'READ' | 'REPLIED' | 'CLOSED';
 export type RfqFileState = 'PENDING' | 'VALIDATED' | 'REJECTED';
 export type AuditEntityType = 'USER' | 'SESSION' | 'RFQ' | 'RFQ_FILE' | 'QUOTE';
 
@@ -10,6 +11,44 @@ export interface User {
   passwordHash: string;
   role: UserRole;
   displayName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VendorProfile {
+  id: string;
+  userId: string;
+  slug: string;
+  businessName: string;
+  bio?: string | null;
+  city?: string | null;
+  state?: string | null;
+  serviceAreas: string[];
+  isPublished: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Printer {
+  id: string;
+  vendorId: string;
+  name: string;
+  model?: string | null;
+  technologies: string[];
+  materials: string[];
+  minOrderQuantity: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VendorContact {
+  id: string;
+  vendorId: string;
+  buyerId: string;
+  message: string;
+  phone?: string | null;
+  status: VendorContactStatus;
   createdAt: Date;
   updatedAt: Date;
 }
