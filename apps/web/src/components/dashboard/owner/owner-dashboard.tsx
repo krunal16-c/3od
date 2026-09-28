@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useEffect } from 'react';
+import { getCurrentUser, getMyPrinters, getOpenRfqs, type RfqRecord } from '../../../lib/api-client';
 import { Icon } from './icons';
 import { OwnerSidebar } from './sidebar';
 import { StatCard } from './stat-card';
@@ -21,6 +23,15 @@ export function OwnerDashboard() {
   const [available, setAvailable] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
+  const [liveRfqs, setLiveRfqs] = useState<RfqRecord[]>([]);
+  const [printerCount, setPrinterCount] = useState(0);
+  const [ownerName, setOwnerName] = useState('Arjun');
+  useEffect(() => {
+    void getOpenRfqs().then(({ rfqs: nextRfqs }) => setLiveRfqs(nextRfqs)).catch(() => undefined);
+    void getMyPrinters().then(({ printers }) => setPrinterCount(printers.length)).catch(() => undefined);
+    void getCurrentUser().then(({ user }) => setOwnerName(user.name.split(' ')[0] || 'there')).catch(() => undefined);
+  }, []);
+  const visibleRfqs = liveRfqs.length > 0 ? liveRfqs.slice(0, 4).map((rfq, index) => ({ initials: 'RF', name: 'New buyer request', meta: `${rfq.material ?? 'Flexible material'} · India`, title: rfq.title, detail: `${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, amount: 'Reply with quote', color: index % 2 === 0 ? 'orange' : 'blue' })) : rfqs;
 
   return (
     <div className="od-app">
@@ -34,7 +45,7 @@ export function OwnerDashboard() {
 
         <div className="od-content">
           <section className="od-welcome-row">
-            <div><p className="od-kicker">Tuesday, 22 September 2026 <span className="od-kicker-rule" /> Bengaluru, IN</p><h1>Good morning, Arjun<span>.</span></h1><p className="od-subtitle">Your machines are ready. Here’s what’s moving today.</p></div>
+            <div><p className="od-kicker">Your owner workspace <span className="od-kicker-rule" /> India</p><h1>Good morning, {ownerName}<span>.</span></h1><p className="od-subtitle">Your {printerCount || 'available'} machines are ready. Here’s what’s moving today.</p></div>
             <div className="od-welcome-actions"><Link className="od-text-link" href="/for-printer-owners">Owner guide <Icon name="external" size={14} /></Link><Link className="od-primary-button" href="/vendor"><span>Manage public page</span><Icon name="arrow" size={16} /></Link></div>
           </section>
 
@@ -51,7 +62,7 @@ export function OwnerDashboard() {
           <div className="od-dashboard-grid">
             <section className="od-panel od-rfq-panel" id="rfq-inbox">
               <div className="od-panel-heading"><div><p className="od-kicker">Needs your eye</p><h2>Incoming RFQs <span className="od-count">4</span></h2></div><a className="od-panel-link" href="#all-rfqs">See all <Icon name="arrow" size={15} /></a></div>
-              <div className="od-rfq-list">{rfqs.map((rfq) => <article className="od-rfq-row" key={rfq.title}><span className={`od-avatar od-avatar-${rfq.color}`}>{rfq.initials}</span><div className="od-rfq-main"><div className="od-rfq-customer"><strong>{rfq.name}</strong><span>{rfq.meta}</span></div><h3>{rfq.title}</h3><p><Icon name="clock" size={13} /> {rfq.detail}</p></div><div className="od-rfq-price"><strong>{rfq.amount}</strong><button onClick={() => setShowComposer(true)}>Quote <Icon name="arrow" size={14} /></button></div></article>)}</div>
+              <div className="od-rfq-list">{visibleRfqs.map((rfq) => <article className="od-rfq-row" key={rfq.title}><span className={`od-avatar od-avatar-${rfq.color}`}>{rfq.initials}</span><div className="od-rfq-main"><div className="od-rfq-customer"><strong>{rfq.name}</strong><span>{rfq.meta}</span></div><h3>{rfq.title}</h3><p><Icon name="clock" size={13} /> {rfq.detail}</p></div><div className="od-rfq-price"><strong>{rfq.amount}</strong><button onClick={() => setShowComposer(true)}>Quote <Icon name="arrow" size={14} /></button></div></article>)}</div>
               <article className="od-more-rfq"><span className="od-more-icon"><Icon name="inbox" size={17} /></span><div><strong>1 more request is waiting</strong><p>Respond within 18 hours to keep your fast-response badge.</p></div><Icon name="chevron" size={15} /></article>
             </section>
 
@@ -69,7 +80,7 @@ export function OwnerDashboard() {
             <section className="od-panel od-checklist-panel"><div className="od-panel-heading"><div><p className="od-kicker">Keep growing</p><h2>Set up your shop</h2></div><span className="od-progress-badge">3 / 5</span></div><p className="od-checklist-copy">Complete your profile to appear higher in customer searches.</p><div className="od-checklist"><div className="od-check-done"><span><Icon name="check" size={13} /></span><div><strong>Add your first printer</strong><small>Prusa MK4 · FDM</small></div></div><div className="od-check-done"><span><Icon name="check" size={13} /></span><div><strong>Set your service area</strong><small>Within 25 km of Indiranagar</small></div></div><div className="od-check-current"><span>3</span><div><strong>Upload a work sample</strong><small>Show customers what you make</small></div><button aria-label="Complete upload sample"><Icon name="arrow" size={14} /></button></div><div className="od-check-next"><span>4</span><div><strong>Add payout details</strong><small>Required before your first payout</small></div></div><div className="od-check-next"><span>5</span><div><strong>Set your availability</strong><small>Tell buyers when you’re online</small></div></div></div><a className="od-checklist-link" href="#profile">Finish profile <Icon name="arrow" size={14} /></a></section>
           </div>
 
-          <footer className="od-footer"><span>3oD owner workspace <span className="od-footer-dot">•</span> Built for makers in India</span><span><Link href="/for-printer-owners">How 3oD works</Link><Link href="/login">Sign out</Link></span></footer>
+          <footer className="od-footer"><span>3oD by Zester Product Studio <span className="od-footer-dot">•</span> Built for makers in India</span><span><Link href="/for-printer-owners">How 3oD works</Link><Link href="/login">Sign out</Link></span></footer>
         </div>
       </main>
       {showComposer && <div className="od-modal-backdrop" role="presentation" onClick={() => setShowComposer(false)}><div className="od-modal" role="dialog" aria-modal="true" aria-labelledby="quote-dialog-title" onClick={(event) => event.stopPropagation()}><button className="od-modal-close" onClick={() => setShowComposer(false)} aria-label="Close quote composer"><Icon name="close" size={18} /></button><p className="od-kicker">Quote composer</p><h2 id="quote-dialog-title">Ready to send a thoughtful quote?</h2><p>This preview is wired for the product flow. Connect your account to send a quote and start a conversation with the customer.</p><Link className="od-primary-button od-modal-cta" href="/login">Continue to sign in <Icon name="arrow" size={16} /></Link></div></div>}
@@ -77,7 +88,7 @@ export function OwnerDashboard() {
         .od-app { --od-ink:#1e201d; --od-muted:#70736c; --od-line:#dedfd8; --od-paper:#f7f8f3; --od-white:#fffefa; --od-orange:#f4633f; --od-orange-soft:#fff0e9; --od-green:#0f8a67; --od-green-soft:#e6f4eb; --od-blue:#5677d8; --od-violet:#9672ca; min-height:100vh; display:flex; background:var(--od-paper); color:var(--od-ink); font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
         .od-app * { box-sizing:border-box; } .od-app a { color:inherit; text-decoration:none; } .od-app button { font:inherit; }
         .od-sidebar { width:248px; flex:0 0 248px; background:var(--od-ink); color:#f4f4ed; padding:27px 18px 20px; display:flex; flex-direction:column; min-height:100vh; position:sticky; top:0; height:100vh; z-index:20; }
-        .od-brand-row { display:flex; align-items:center; justify-content:space-between; padding:0 11px; margin-bottom:36px; } .od-brand { font-size:28px; line-height:1; font-weight:700; letter-spacing:-.08em; } .od-brand span { color:var(--od-orange); } .od-close-button { display:none!important; }
+        .od-brand-row { display:flex; align-items:center; justify-content:space-between; padding:0 11px; margin-bottom:36px; } .od-brand { display:flex; flex-direction:column; gap:4px; font-size:28px; line-height:1; font-weight:700; letter-spacing:-.08em; } .od-brand span { color:var(--od-orange); } .od-brand:after { content:'by Zester Product Studio'; color:#8f938a; font:500 8px 'DM Mono',monospace; letter-spacing:.02em; text-transform:uppercase; } .od-close-button { display:none!important; }
         .od-workspace-chip { display:flex; align-items:center; gap:10px; padding:10px 9px; border:1px solid #3b3e39; background:#292c28; margin:0 5px 30px; border-radius:8px; } .od-workspace-chip strong,.od-workspace-chip small { display:block; } .od-workspace-chip strong { font-size:12px; font-weight:600; } .od-workspace-chip small { color:#aeb1aa; font-size:10px; margin-top:2px; } .od-workspace-chip svg { margin-left:auto; color:#9b9e97; }
         .od-nav-label,.od-kicker,.od-stat-label { font-size:10px; line-height:1; letter-spacing:.13em; text-transform:uppercase; font-weight:600; } .od-nav-label { color:#7f847b; margin:0 12px 10px; } .od-nav { display:grid; gap:4px; } .od-nav-link { display:flex; gap:12px; align-items:center; padding:11px 12px; color:#aeb1aa; border-radius:6px; font-size:13px; transition:background .2s,color .2s; } .od-nav-link:hover { background:#292c28; color:#fff; } .od-nav-link b { margin-left:auto; font-size:10px; font-weight:600; color:#ffb49e; background:#4a2d26; padding:3px 6px; border-radius:10px; } .od-nav-active { background:#343832; color:#fff; } .od-nav-active svg { color:var(--od-orange); } .od-sidebar-bottom { margin-top:auto; } .od-sidebar-bottom .od-nav-link { margin-bottom:3px; } .od-sidebar-footer { margin:22px 6px 0; padding-top:16px; border-top:1px solid #3b3e39; color:#9b9e97; font-size:10px; display:flex; align-items:center; gap:6px; } .od-status-dot,.od-pulse { display:inline-flex; align-items:center; justify-content:center; width:7px; height:7px; border-radius:50%; background:#62c89e; } .od-live-pill { color:#62c89e; font-size:8px; letter-spacing:.1em; margin-left:auto; }
         .od-main { min-width:0; flex:1; } .od-header { height:76px; padding:0 44px; display:flex; align-items:center; border-bottom:1px solid var(--od-line); background:rgba(247,248,243,.92); } .od-breadcrumb { display:flex; gap:11px; align-items:center; color:#a0a39a; font-size:12px; } .od-breadcrumb svg { transform:rotate(0deg); } .od-breadcrumb strong { color:var(--od-ink); font-weight:600; } .od-header-actions { margin-left:auto; display:flex; align-items:center; gap:18px; } .od-header-icon,.od-menu-button,.od-more-button,.od-modal-close { border:0; background:transparent; color:var(--od-ink); padding:4px; cursor:pointer; position:relative; } .od-bell i { position:absolute; width:5px; height:5px; background:var(--od-orange); border-radius:50%; top:1px; right:1px; border:1px solid var(--od-paper); } .od-header-avatar,.od-avatar { display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-weight:700; } .od-header-avatar { background:var(--od-orange); color:#fff; width:32px; height:32px; font-size:10px; } .od-menu-button { display:none; }

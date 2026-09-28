@@ -1,5 +1,7 @@
 export const siteCopy = {
   brand: '3oD',
+  studio: 'Zester Product Studio',
+  brandLockup: '3oD by Zester Product Studio',
   descriptor: "India's 3D Printing Marketplace",
   hero: {
     eyebrow: 'Made for makers, builders, and the wonderfully specific part you need next.',
@@ -25,7 +27,7 @@ export const siteCopy = {
   },
   footer: {
     tagline: 'Real quotes for real parts.',
-    copyright: '© 2026 3oD. Built for the next useful thing.',
+    copyright: '© 2026 3oD by Zester Product Studio. Built for the next useful thing.',
   },
   sections: {
     audienceEyebrow: 'Two sides. One making network.',

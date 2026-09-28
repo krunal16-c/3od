@@ -35,6 +35,8 @@ export type UploadIntentResponse = { uploadUrl: string; key: string; expiresInSe
 export type VendorProfile = { id: string; slug: string; businessName: string; bio?: string | null; city?: string | null; state?: string | null; serviceAreas: string[]; isPublished: boolean };
 export type PrinterListing = { id: string; name: string; model?: string | null; technologies: string[]; materials: string[]; minOrderQuantity: number; isActive: boolean };
 export type VendorContact = { id: string; message: string; phone?: string | null; status: string; createdAt: string };
+export type RfqRecord = { id: string; title: string; description?: string | null; quantity?: number | null; material?: string | null; finish?: string | null; deadline?: string | null; state: string; createdAt: string };
+export type QuoteRecord = { id: string; rfqId: string; supplierId: string; state: string; totalAmountInr: number; currency: string; deliveryDate?: string | null; notes?: string | null };
 
 type ApiErrorPayload = {
   statusCode?: unknown;
@@ -140,3 +142,10 @@ export function saveVendorProfile(input: { slug: string; businessName: string; b
 export function createPrinter(input: { name: string; model?: string; technologies: string[]; materials: string[]; minOrderQuantity: number }) { return request<{ printer: PrinterListing }>('/vendor/printers', { method: 'POST', body: input }); }
 export function getVendorPage(slug: string) { return request<{ vendor: VendorProfile; printers: PrinterListing[] }>(`/vendors/${encodeURIComponent(slug)}`, { method: 'GET' }); }
 export function contactVendor(slug: string, input: { message: string; phone?: string }) { return request<{ contact: VendorContact }>(`/vendors/${encodeURIComponent(slug)}/contact`, { method: 'POST', body: input }); }
+export function getCurrentUser() { return request<AuthResponse>('/auth/me', { method: 'GET' }); }
+export function logout() { return request<void>('/auth/logout', { method: 'POST' }); }
+export function getMyRfqs() { return request<{ rfqs: RfqRecord[] }>('/rfqs/mine', { method: 'GET' }); }
+export function getOpenRfqs() { return request<{ rfqs: RfqRecord[] }>('/rfqs/inbox', { method: 'GET' }); }
+export function getRfqQuotes(rfqId: string) { return request<{ quotes: QuoteRecord[] }>(`/rfqs/${encodeURIComponent(rfqId)}/quotes`, { method: 'GET' }); }
+export function getMyPrinters() { return request<{ printers: PrinterListing[] }>('/vendor/printers', { method: 'GET' }); }
+export function getVendorContacts() { return request<{ contacts: VendorContact[] }>('/vendor/contacts', { method: 'GET' }); }

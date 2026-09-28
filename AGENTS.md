@@ -26,3 +26,10 @@
 - Run the relevant tests, type checks, and formatting checks before committing.
 - Never commit secrets, database URLs, `.env` files, credentials, private keys, or large generated build output.
 - Make commits easy to review, revert, and cherry-pick; explain important migration or compatibility concerns in the commit body when needed.
+
+## Documentation maintenance
+
+- Update `README.md` when significant features, setup steps, scripts, routes, environment variables, or developer workflows change.
+- Update `architecture.md` when a feature changes system boundaries, data models, request flows, security behavior, persistence, deployment, or operational responsibilities.
+- Keep documentation updates in the same focused commit as the code change they describe.
+- Do not leave significant functionality undocumented or rely on conversation history as the only source of project knowledge.

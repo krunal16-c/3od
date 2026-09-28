@@ -128,8 +128,10 @@ export function LoginForm() {
 
     setSubmitting(true);
     try {
+      const requestedPath = new URLSearchParams(window.location.search).get('next');
+      const redirectPath = requestedPath?.startsWith('/') ? requestedPath : undefined;
       if (apiMode === 'demo') {
-        router.push(role === 'buyer' ? '/dashboard/buyer' : '/dashboard/owner');
+        router.push(redirectPath ?? (role === 'buyer' ? '/dashboard/buyer' : '/dashboard/owner'));
         return;
       }
 
@@ -137,7 +139,7 @@ export function LoginForm() {
         email: String(form.get('email') ?? '').trim(),
         password: String(form.get('password') ?? ''),
       });
-      router.push(dashboardPathForUser(user));
+      router.push(redirectPath ?? dashboardPathForUser(user));
     } catch (error) {
       setErrors([errorMessage(error)]);
     } finally {

@@ -1,6 +1,6 @@
-# 3oD Marketplace
+# 3oD by Zester Product Studio
 
-3oD is an India-wide two-sided marketplace for custom 3D printing. Buyers upload a design and request quotes; printer owners discover suitable requests, submit pricing and lead times, and fulfil accepted work.
+3oD by Zester Product Studio is an India-wide two-sided marketplace for custom 3D printing. Buyers upload a design and request quotes; printer owners discover suitable requests, submit pricing and lead times, and fulfil accepted work.
 
 The repository is a pnpm monorepo containing the Next.js web app, NestJS API, shared contracts/domain packages, and a worker boundary for asynchronous jobs.
 
@@ -73,6 +73,8 @@ pnpm seed:demo
 The command is idempotent for the demo records and refuses to run with `NODE_ENV=production`. It prints the demo credentials when complete. Never use these credentials in production.
 
 Open `/login`, `/signup`, `/request-quote`, `/dashboard/buyer`, or `/dashboard/owner`.
+
+The quote flow is protected by the API session cookie. Opening `/request-quote` checks the current session; unauthenticated visitors are sent to `/login?next=/request-quote` and returned to the quote form after a successful login.
 
 Printer owners can open `/vendor` to publish their workshop page and add printers. Each printer has a customer-visible minimum order quantity (MOQ). A published page is available at `/vendors/<page-handle>`; signed-in buyers can contact the vendor from that page.
 

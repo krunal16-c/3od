@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { getMyRfqs, getCurrentUser, logout, type RfqRecord } from '../../../lib/api-client';
 import styles from './buyer-dashboard.module.css';
 
 type IconName =
@@ -39,11 +43,11 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   return <svg {...common} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
-const navItems: { label: string; icon: IconName; active?: boolean; count?: string }[] = [
-  { label: 'Overview', icon: 'grid', active: true },
-  { label: 'My RFQs', icon: 'file', count: '3' },
-  { label: 'Orders', icon: 'box', count: '2' },
-  { label: 'Saved designs', icon: 'heart' },
+const navItems: { label: string; href: string; icon: IconName; active?: boolean; count?: string }[] = [
+  { label: 'Overview', href: '/dashboard/buyer', icon: 'grid', active: true },
+  { label: 'My RFQs', href: '/dashboard/buyer/rfqs', icon: 'file', count: '3' },
+  { label: 'Orders', href: '/dashboard/buyer/orders', icon: 'box', count: '2' },
+  { label: 'Saved designs', href: '/dashboard/buyer/designs', icon: 'heart' },
 ];
 
 const rfqs = [
@@ -54,18 +58,18 @@ const rfqs = [
 function NavContent() {
   return (
     <>
-      <Link className={styles.brand} href="/" aria-label="3oD home"><span>3</span>oD<small>marketplace</small></Link>
+      <Link className={styles.brand} href="/" aria-label="3oD by Zester Product Studio home"><span>3</span>oD<small>by Zester Product Studio</small></Link>
       <div className={styles.workspaceLabel}>Buyer workspace <Icon name="chevron" size={14} /></div>
       <nav className={styles.nav} aria-label="Buyer dashboard">
         <p className={styles.navHeading}>Workspace</p>
         {navItems.map((item) => (
-          <Link className={`${styles.navLink} ${item.active ? styles.navActive : ''}`} href={item.label === 'Overview' ? '/dashboard/buyer' : '#'} key={item.label}>
+          <Link className={`${styles.navLink} ${item.active ? styles.navActive : ''}`} href={item.href} key={item.label}>
             <Icon name={item.icon} size={17} /><span>{item.label}</span>{item.count && <b>{item.count}</b>}
           </Link>
         ))}
         <p className={`${styles.navHeading} ${styles.navHeadingSpaced}`}>Account</p>
-        <Link className={styles.navLink} href="#"><Icon name="settings" size={17} /><span>Settings</span></Link>
-        <Link className={styles.navLink} href="#"><Icon name="help" size={17} /><span>Help centre</span></Link>
+        <Link className={styles.navLink} href="/dashboard/buyer/settings"><Icon name="settings" size={17} /><span>Settings</span></Link>
+        <Link className={styles.navLink} href="/dashboard/buyer/help"><Icon name="help" size={17} /><span>Help centre</span></Link>
       </nav>
       <div className={styles.sidebarBottom}>
         <div className={styles.trustNote}><Icon name="spark" size={16} /><span><strong>Made for makers</strong>Quotes from verified Indian print partners.</span></div>
@@ -80,6 +84,13 @@ function SectionTitle({ eyebrow, title, action }: { eyebrow: string; title: stri
 }
 
 export function BuyerDashboard() {
+  const [liveRfqs, setLiveRfqs] = useState<RfqRecord[]>([]);
+  const [displayName, setDisplayName] = useState('Arjun');
+  useEffect(() => {
+    void getMyRfqs().then(({ rfqs: nextRfqs }) => setLiveRfqs(nextRfqs)).catch(() => undefined);
+    void getCurrentUser().then(({ user }) => setDisplayName(user.name.split(' ')[0] || 'there')).catch(() => undefined);
+  }, []);
+  const visibleRfqs = liveRfqs.length > 0 ? liveRfqs.slice(0, 2).map((rfq, index) => ({ name: rfq.title, meta: `${rfq.material ?? 'Material flexible'} · ${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, status: rfq.state === 'QUOTES_RECEIVED' ? 'Quotes ready' : 'Awaiting quotes', price: rfq.state === 'QUOTES_RECEIVED' ? 'Compare quotes' : 'Open for quotes', tone: index % 2 === 0 ? 'orange' : 'blue' })) : rfqs;
   return (
     <div className={styles.dashboard}>
       <aside className={styles.sidebar}><NavContent /></aside>
@@ -90,12 +101,12 @@ export function BuyerDashboard() {
       <main className={styles.main}>
         <header className={styles.topbar}>
           <div className={styles.breadcrumb}><span>Buyer workspace</span><i>/</i><strong>Overview</strong></div>
-          <div className={styles.topActions}><button className={styles.iconButton} aria-label="Search"><Icon name="search" /></button><button className={styles.iconButton} aria-label="Notifications"><Icon name="bell" /><em>2</em></button><Link className={styles.helpLink} href="#"><Icon name="help" size={16} /> Help</Link></div>
+          <div className={styles.topActions}><button className={styles.iconButton} aria-label="Search"><Icon name="search" /></button><button className={styles.iconButton} aria-label="Notifications"><Icon name="bell" /><em>2</em></button><Link className={styles.helpLink} href="/dashboard/buyer/help"><Icon name="help" size={16} /> Help</Link></div>
         </header>
 
         <div className={styles.content}>
           <section className={styles.welcome} aria-labelledby="welcome-title">
-            <div><p className={styles.eyebrow}>Tuesday, 22 September 2026</p><h1 id="welcome-title">Good morning, Arjun<span>.</span></h1><p className={styles.welcomeCopy}>Your print queue is looking good. Two orders are moving, and you have <strong>3 new quotes</strong> ready to compare.</p></div>
+            <div><p className={styles.eyebrow}>Your 3oD workspace</p><h1 id="welcome-title">Good morning, {displayName}<span>.</span></h1><p className={styles.welcomeCopy}>Your print queue is looking good. Your live RFQs and quotes appear here as they move.</p></div>
             <Link className={styles.primaryButton} href="/request-quote"><Icon name="plus" size={17} /> Start a new RFQ <Icon name="arrow" size={16} /></Link>
           </section>
 
@@ -106,22 +117,22 @@ export function BuyerDashboard() {
           </section>
 
           <div className={styles.grid}>
-            <section className={styles.rfqSection} aria-labelledby="rfq-title"><SectionTitle eyebrow="01 / In progress" title="Active RFQs" action={<Link className={styles.textLink} href="#">View all <Icon name="arrow" size={15} /></Link>} />
-              <div className={styles.rfqList}>{rfqs.map((rfq) => <article className={styles.rfqCard} key={rfq.name}><div className={`${styles.filePreview} ${rfq.tone}`}><Icon name="cube" size={27} /><span>.STL</span></div><div className={styles.rfqDetails}><div className={styles.rfqTop}><h3>{rfq.name}</h3><button className={styles.moreButton} aria-label={`More options for ${rfq.name}`}>•••</button></div><p>{rfq.meta}</p><div className={styles.rfqBottom}><span className={`${styles.pill} ${rfq.tone === 'orange' ? styles.pillOrange : styles.pillBlue}`}><span />{rfq.status}</span><strong>{rfq.price}</strong></div></div></article>)}</div>
+            <section className={styles.rfqSection} aria-labelledby="rfq-title"><SectionTitle eyebrow="01 / In progress" title="Active RFQs" action={<Link className={styles.textLink} href="/dashboard/buyer/rfqs">View all <Icon name="arrow" size={15} /></Link>} />
+              <div className={styles.rfqList}>{visibleRfqs.map((rfq) => <article className={styles.rfqCard} key={rfq.name}><div className={`${styles.filePreview} ${rfq.tone}`}><Icon name="cube" size={27} /><span>.STL</span></div><div className={styles.rfqDetails}><div className={styles.rfqTop}><h3>{rfq.name}</h3><button className={styles.moreButton} aria-label={`More options for ${rfq.name}`}>•••</button></div><p>{rfq.meta}</p><div className={styles.rfqBottom}><span className={`${styles.pill} ${rfq.tone === 'orange' ? styles.pillOrange : styles.pillBlue}`}><span />{rfq.status}</span><strong>{rfq.price}</strong></div></div></article>)}</div>
             </section>
 
             <section className={styles.quoteSection} aria-labelledby="quote-title"><SectionTitle eyebrow="02 / Compare" title="Quote comparison" action={<span className={styles.updated}><span />Updated just now</span>} />
-              <article className={styles.quoteCard}><div className={styles.quoteHeader}><div><span className={styles.recommended}><Icon name="spark" size={13} /> Best match</span><h3>Desk organiser v2</h3><p>3 quotes · Delivery to Bengaluru</p></div><Link href="#" className={styles.viewLink}>View RFQ <Icon name="arrow" size={15} /></Link></div><div className={styles.quoteRows}><div className={`${styles.quoteRow} ${styles.bestRow}`}><span className={styles.printerLogo}>P</span><span className={styles.printerInfo}><strong>Printwise Studio</strong><small>Indiranagar, Bengaluru · 4.9 <span>★</span> (36)</small></span><span className={styles.delivery}>30 Sep</span><strong className={styles.quotePrice}>₹1,280</strong><button className={styles.selectButton} aria-label="Select Printwise Studio">Select</button></div><div className={styles.quoteRow}><span className={`${styles.printerLogo} ${styles.logoBlue}`}>M</span><span className={styles.printerInfo}><strong>MakerSpace 3D</strong><small>Baner, Pune · 4.8 <span>★</span> (21)</small></span><span className={styles.delivery}>02 Oct</span><strong className={styles.quotePrice}>₹1,450</strong><button className={styles.outlineButton} aria-label="View MakerSpace 3D quote">View</button></div><div className={styles.quoteRow}><span className={`${styles.printerLogo} ${styles.logoGreen}`}>F</span><span className={styles.printerInfo}><strong>FabLab Chennai</strong><small>Adyar, Chennai · 4.7 <span>★</span> (48)</small></span><span className={styles.delivery}>04 Oct</span><strong className={styles.quotePrice}>₹1,950</strong><button className={styles.outlineButton} aria-label="View FabLab Chennai quote">View</button></div></div></article>
+              <article className={styles.quoteCard}><div className={styles.quoteHeader}><div><span className={styles.recommended}><Icon name="spark" size={13} /> Best match</span><h3>Compare your responses</h3><p>Open an RFQ to review vendor quotes</p></div><Link href="/dashboard/buyer/rfqs" className={styles.viewLink}>View RFQs <Icon name="arrow" size={15} /></Link></div><div className={styles.quoteRows}><div className={`${styles.quoteRow} ${styles.bestRow}`}><span className={styles.printerLogo}>P</span><span className={styles.printerInfo}><strong>Printwise Studio</strong><small>Recommended local partner · MOQ 1</small></span><span className={styles.delivery}>Fast</span><strong className={styles.quotePrice}>₹1,280</strong><Link className={styles.selectButton} href="/dashboard/buyer/rfqs">View</Link></div><div className={styles.quoteRow}><span className={`${styles.printerLogo} ${styles.logoBlue}`}>M</span><span className={styles.printerInfo}><strong>MakerSpace 3D</strong><small>Engineering materials · MOQ 5</small></span><span className={styles.delivery}>2–4d</span><strong className={styles.quotePrice}>₹1,450</strong><Link className={styles.outlineButton} href="/dashboard/buyer/rfqs">View</Link></div><div className={styles.quoteRow}><span className={`${styles.printerLogo} ${styles.logoGreen}`}>F</span><span className={styles.printerInfo}><strong>FabLab Chennai</strong><small>Resin detail · MOQ 2</small></span><span className={styles.delivery}>4–6d</span><strong className={styles.quotePrice}>₹1,950</strong><Link className={styles.outlineButton} href="/dashboard/buyer/rfqs">View</Link></div></div></article>
             </section>
           </div>
 
           <div className={styles.lowerGrid}>
-            <section aria-labelledby="order-title"><SectionTitle eyebrow="03 / On the move" title="Order progress" action={<Link className={styles.textLink} href="#">All orders <Icon name="arrow" size={15} /></Link>} /><article className={styles.orderCard}><div className={styles.orderTop}><div><span className={styles.orderNumber}>ORDER #3OD-1048</span><h3>Phone stand — batch of 4</h3></div><span className={styles.pillMint}><span />In production</span></div><div className={styles.timeline}><div className={`${styles.timelineStep} ${styles.done}`}><span>✓</span><small>Order placed<em>18 Sep</em></small></div><div className={`${styles.timelineStep} ${styles.done}`}><span>✓</span><small>Design approved<em>19 Sep</em></small></div><div className={`${styles.timelineStep} ${styles.current}`}><span>3</span><small>Printing<em>Est. 25 Sep</em></small></div><div className={styles.timelineStep}><span>4</span><small>Delivered<em>Est. 27 Sep</em></small></div></div><div className={styles.orderFooter}><span><Icon name="box" size={15} /> Printwise Studio · Bengaluru</span><Link href="#">Track order <Icon name="arrow" size={14} /></Link></div></article></section>
-            <section aria-labelledby="saved-title"><SectionTitle eyebrow="04 / Your library" title="Saved designs" action={<Link className={styles.textLink} href="#">Library <Icon name="arrow" size={15} /></Link>} /><div className={styles.designCard}><div className={styles.designThumbs}><div className={`${styles.thumb} ${styles.thumbOne}`}><span /></div><div className={`${styles.thumb} ${styles.thumbTwo}`}><span /></div><div className={`${styles.thumb} ${styles.thumbThree}`}><span /></div></div><div className={styles.designInfo}><div><h3>8 designs ready to print</h3><p>Keep your best ideas close. Start an RFQ from any saved design.</p></div><Link className={styles.smallButton} href="/request-quote">Browse designs <Icon name="arrow" size={14} /></Link></div></div></section>
+            <section aria-labelledby="order-title"><SectionTitle eyebrow="03 / On the move" title="Order progress" action={<Link className={styles.textLink} href="/dashboard/buyer/orders">All orders <Icon name="arrow" size={15} /></Link>} /><article className={styles.orderCard}><div className={styles.orderTop}><div><span className={styles.orderNumber}>ORDER #3OD-1048</span><h3>Phone stand — batch of 4</h3></div><span className={styles.pillMint}><span />In production</span></div><div className={styles.timeline}><div className={`${styles.timelineStep} ${styles.done}`}><span>✓</span><small>Order placed<em>18 Sep</em></small></div><div className={`${styles.timelineStep} ${styles.done}`}><span>✓</span><small>Design approved<em>19 Sep</em></small></div><div className={`${styles.timelineStep} ${styles.current}`}><span>3</span><small>Printing<em>Est. 25 Sep</em></small></div><div className={styles.timelineStep}><span>4</span><small>Delivered<em>Est. 27 Sep</em></small></div></div><div className={styles.orderFooter}><span><Icon name="box" size={15} /> Printwise Studio · Bengaluru</span><Link href="/dashboard/buyer/orders">Track order <Icon name="arrow" size={14} /></Link></div></article></section>
+            <section aria-labelledby="saved-title"><SectionTitle eyebrow="04 / Your library" title="Saved designs" action={<Link className={styles.textLink} href="/dashboard/buyer/designs">Library <Icon name="arrow" size={15} /></Link>} /><div className={styles.designCard}><div className={styles.designThumbs}><div className={`${styles.thumb} ${styles.thumbOne}`}><span /></div><div className={`${styles.thumb} ${styles.thumbTwo}`}><span /></div><div className={`${styles.thumb} ${styles.thumbThree}`}><span /></div></div><div className={styles.designInfo}><div><h3>8 designs ready to print</h3><p>Keep your best ideas close. Start an RFQ from any saved design.</p></div><Link className={styles.smallButton} href="/dashboard/buyer/designs">Browse designs <Icon name="arrow" size={14} /></Link></div></div></section>
           </div>
 
           <section className={styles.prompt}><div className={styles.promptIcon}><Icon name="spark" size={21} /></div><div><p className={styles.eyebrow}>Not sure where to start?</p><h2>Have a design in mind?</h2><p>Upload a file, tell us what you need, and let verified print partners do the rest.</p></div><Link className={styles.promptButton} href="/request-quote">Get a quote <Icon name="arrow" size={15} /></Link></section>
-          <footer className={styles.footer}><span>© 2026 3oD</span><span>Made for makers across India <span className={styles.footerDot}>●</span></span><Link href="/login">Sign out</Link></footer>
+          <footer className={styles.footer}><span>© 2026 3oD by Zester Product Studio</span><span>Made for makers across India <span className={styles.footerDot}>●</span></span><button className={styles.footerSignOut} onClick={() => { void logout().finally(() => { window.location.href = '/login'; }); }}>Sign out</button></footer>
         </div>
       </main>
     </div>

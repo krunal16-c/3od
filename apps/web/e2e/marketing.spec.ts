@@ -73,7 +73,7 @@ test.describe('3oD marketing site', () => {
 
   test('has exact titles and canonicals on public routes', async ({ page }) => {
     const routes = [
-      { path: '/', title: "3oD — India's 3D Printing Marketplace", canonical: 'https://3od.in' },
+      { path: '/', title: "3oD by Zester Product Studio — India's 3D Printing Marketplace", canonical: 'https://3od.in' },
       {
         path: '/for-buyers',
         title: '3D Printing Services in India | 3oD',

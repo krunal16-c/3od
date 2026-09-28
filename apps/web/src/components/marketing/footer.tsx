@@ -5,8 +5,8 @@ export function Footer() {
   return (
     <footer className="footer shell">
       <div>
-        <Link className="wordmark" href="/">
-          <span>3</span>oD
+        <Link className="wordmark" href="/" aria-label="3oD by Zester Product Studio home">
+          <span className="wordmark-name"><i>3</i>oD</span><small>by Zester Product Studio</small>
         </Link>
         <p>{siteCopy.footer.tagline}</p>
       </div>

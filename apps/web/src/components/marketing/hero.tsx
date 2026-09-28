@@ -6,7 +6,7 @@ import { MobileNav } from './mobile-nav';
 export function Header() {
   return (
     <header className="site-header">
-      <Link className="wordmark" href="/" aria-label="3oD home"><span>3</span>oD</Link>
+      <Link className="wordmark" href="/" aria-label="3oD by Zester Product Studio home"><span className="wordmark-name"><i>3</i>oD</span><small>by Zester Product Studio</small></Link>
       <nav className="nav-links" aria-label="Main navigation">
         <Link href="/for-buyers">{siteCopy.nav.buyers}</Link>
         <Link href="/for-printer-owners">{siteCopy.nav.suppliers}</Link>

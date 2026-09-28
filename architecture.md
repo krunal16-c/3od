@@ -1,8 +1,8 @@
-# 3oD Architecture
+# 3oD by Zester Product Studio Architecture
 
 ## Product boundary
 
-3oD is a two-sided marketplace:
+3oD by Zester Product Studio is a two-sided marketplace. 3oD is the product name; Zester Product Studio is the studio attribution used in the public brand lockup, metadata, and workspace footers:
 
 - Buyers describe a part, upload a design, and request quotes.
 - Printer owners discover matching RFQs, provide price and lead time, and fulfil accepted work.
@@ -82,6 +82,8 @@ Worker boundary for asynchronous processing. It is currently a foundation and sh
 5. Only the token hash is stored in PostgreSQL.
 6. The raw token is returned only as an HttpOnly cookie.
 7. Every protected request resolves the session and user role server-side.
+
+The web quote page performs an `/auth/me` check before rendering the RFQ form. If the session is missing or expired, the browser is sent to login with a validated relative `next` path, then returned to the requested quote flow after authentication. The session remains an HttpOnly cookie and is never copied into browser storage.
 
 ### RFQ and file upload
 
