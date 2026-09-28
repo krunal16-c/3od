@@ -1,0 +1,21 @@
+{
+  "name": "@3od/api-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@3od/domain": "workspace:*",
+    "hono": "^4.7.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
+    "wrangler": "^4.142.0"
+  }
+}
