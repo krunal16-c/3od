@@ -7,7 +7,7 @@
 		"nodejs_compat"
 	],
 	"vars": {
-		"APP_ORIGIN": "https://3od-web.your-account.workers.dev",
+		"APP_ORIGIN": "https://3od-web.3od.workers.dev",
 		"NODE_ENV": "production"
 	},
 	"d1_databases": [
