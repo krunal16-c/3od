@@ -21,9 +21,8 @@ CNC machining is a future capability. The initial domain is designed around manu
                          HTTPS JSON + cookies
                                    |
                         +----------v-----------+
-                        |    NestJS/Fastify    |
-                        | auth, RFQs, quotes,  |
-                        | authorization, APIs |
+                        | Existing NestJS API  |
+                        | PostgreSQL migration |
                         +----+------------+----+
                              |            |
                    PostgreSQL|            |presigned URL
@@ -40,6 +39,17 @@ CNC machining is a future capability. The initial domain is designed around manu
                     | expiry, events  |
                     +-----------------+
 ```
+
+The target Cloudflare-only shape adds a parallel API Worker during migration:
+
+```text
+Browser -> Cloudflare Next.js Worker -> Cloudflare API Worker
+                                      |-> D1 marketplace database
+                                      |-> R2 FILES binding
+                                      |-> Queues/KV or Durable Object later
+```
+
+The existing API remains available until the Worker route, upload, data-import, and browser end-to-end checks pass. This staged boundary makes rollback possible without changing the frontend contract.
 
 ## Monorepo boundaries
 
@@ -59,6 +69,10 @@ NestJS running on Fastify. It owns:
 - R2 presigned upload URL generation
 - Prisma-backed persistence in production
 
+### `apps/api-worker`
+
+Cloudflare Workers API migration. It owns the Worker-native versions of authentication, sessions, marketplace authorization, vendor storefronts, printers/MOQ, contacts, RFQs, and quotes. `D1MarketplaceRepository` maps domain objects to the SQLite-compatible D1 schema in `apps/api-worker/migrations`. Passwords created in this Worker use PBKDF2-SHA256 because the Worker runtime cannot transparently verify the existing Node scrypt hashes; existing users require a deliberate password-reset or rehash migration before cutover.
+
 ### `packages/contracts`
 
 Shared Zod schemas for signup, login, RFQs, quotes, pagination, and API errors. The API validates untrusted input at the boundary; the web app uses the same shapes conceptually for consistent error handling.
@@ -75,7 +89,7 @@ Worker boundary for asynchronous processing. It is currently a foundation and sh
 
 ### Signup/login
 
-1. The browser submits credentials to the API.
+1. The browser submits credentials to the active API (NestJS during fallback or the Cloudflare API Worker after cutover).
 2. The API validates the request with Zod.
 3. Passwords are stored as salted hashes.
 4. The API creates a random opaque session token.
@@ -88,8 +102,8 @@ The web quote page performs an `/auth/me` check before rendering the RFQ form. I
 ### RFQ and file upload
 
 1. A buyer submits RFQ metadata with an `Idempotency-Key`.
-2. PostgreSQL enforces one RFQ per buyer/idempotency key.
-3. The API creates a short-lived presigned R2 upload URL.
+2. PostgreSQL or D1 enforces one RFQ per buyer/idempotency key.
+3. The active API creates a short-lived upload capability; the Worker path will write through its R2 binding instead of exposing S3 credentials.
 4. The browser uploads the design directly to R2.
 5. The API records the R2 object key as an RFQ file in PostgreSQL.
 6. Printer owners receive the RFQ through their authorized inbox.
@@ -117,7 +131,7 @@ The first release intentionally keeps vendor contact as a platform message recor
 
 ## Persistence
 
-Production uses PostgreSQL through Prisma. The primary models are:
+The current production path uses PostgreSQL through Prisma. The Cloudflare migration path uses D1 with the same primary entities:
 
 - `User`
 - `Session`
@@ -129,7 +143,7 @@ Production uses PostgreSQL through Prisma. The primary models are:
 - `Printer`
 - `VendorContact`
 
-The API selects the Prisma store when `DATABASE_URL` is configured. Tests use `InMemoryMarketplaceStore` to avoid requiring a live database. Local development without `DATABASE_URL` also falls back to memory, so local data is intentionally disposable.
+The existing API selects the Prisma store when `DATABASE_URL` is configured. The Worker selects D1 through its `DB` binding. Worker tests use a SQLite-backed D1 adapter, so they do not require a live Cloudflare account.
 
 Schema changes belong in `packages/domain/prisma/migrations`. Apply existing production migrations with:
 
@@ -155,14 +169,21 @@ Before public launch, add CSRF protection for cookie-authenticated mutations, ma
 ## Deployment shape
 
 - Deploy `apps/web` to Cloudflare Workers using the OpenNext adapter. The generated Worker entrypoint is `.open-next/worker.js` and static assets are served from the `.open-next/assets` binding.
-- Deploy `apps/api` as a long-running API service.
+- Deploy `apps/api` as a long-running fallback API service until Cloudflare cutover is verified.
+- Deploy `apps/api-worker` as the target Cloudflare API Worker.
 - Deploy `apps/worker` as a separate background worker.
 - Use managed PostgreSQL for the Prisma database.
 - Use Cloudflare R2 for design files.
 - Use managed Redis for queues and rate-limit/event infrastructure.
 
-The Cloudflare Worker is the public frontend edge layer; it does not replace the API. Browser requests travel from the Worker-hosted Next.js application to the HTTPS API, while PostgreSQL and R2 remain server-side resources owned by the API. Only `NEXT_PUBLIC_*` values belong in the frontend deployment. Database URLs, session secrets, R2 credentials, and service credentials must remain on the API/worker environments.
+The frontend Worker and API Worker are separate services. Browser requests travel from the Worker-hosted Next.js application to the API Worker after cutover. D1 and R2 are accessed through Worker bindings. Only `NEXT_PUBLIC_*` values belong in the frontend deployment. Database URLs, session secrets, R2 credentials, and service credentials must remain on API/Worker environments.
 
 The frontend deployment is configured in `apps/web/wrangler.jsonc` and `apps/web/open-next.config.ts`. The Cloudflare build generates the Worker output, and the deployment command publishes that output through Wrangler. The production API must allow the final frontend origin through its CORS configuration.
 
 See [README.md](README.md) for setup and terminal commands.
+
+## Cloudflare migration status
+
+- Worker foundation, explicit CORS, security headers, D1 schema, repository mapping, and route tests are implemented.
+- Auth and marketplace route tests currently cover 29 passing Worker tests.
+- Remaining migration work: R2 upload intents, PostgreSQL-to-D1 export/import verification, production bindings/secrets, browser end-to-end checks, and cutover/rollback runbook.

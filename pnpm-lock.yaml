@@ -121,6 +121,9 @@ importers:
 
   apps/api-worker:
     dependencies:
+      '@3od/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@3od/domain':
         specifier: workspace:*
         version: link:../../packages/domain

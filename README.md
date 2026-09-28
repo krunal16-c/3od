@@ -2,7 +2,7 @@
 
 3oD by Zester Product Studio is an India-wide two-sided marketplace for custom 3D printing. Buyers upload a design and request quotes; printer owners discover suitable requests, submit pricing and lead times, and fulfil accepted work.
 
-The repository is a pnpm monorepo containing the Next.js web app, NestJS API, shared contracts/domain packages, and a worker boundary for asynchronous jobs.
+The repository is a pnpm monorepo containing the Next.js web app, the existing NestJS API, the Cloudflare Worker API migration, shared contracts/domain packages, and a worker boundary for asynchronous jobs.
 
 ## Requirements
 
@@ -10,6 +10,7 @@ The repository is a pnpm monorepo containing the Next.js web app, NestJS API, sh
 - pnpm 9.15.0
 - PostgreSQL for persistent development or production data
 - Cloudflare R2 credentials for real browser uploads
+- Wrangler access to a Cloudflare account for the Worker API migration
 
 Check versions:
 
@@ -98,6 +99,27 @@ Build command: pnpm install --frozen-lockfile && pnpm --filter @3od/web deploy:c
 
 The Worker serves the Next.js frontend and calls the separately deployed API over HTTPS. Keep `DATABASE_URL`, `SESSION_SECRET`, R2 access keys, and other private values on the API service; never add them to the frontend build. After choosing a production frontend domain, add it to the API `APP_ORIGIN` and `WEB_ORIGINS` values and restart the API so browser requests pass CORS checks.
 
+## Cloudflare-only API migration
+
+The Cloudflare API foundation lives in `apps/api-worker`. It uses Hono, D1 for relational marketplace data, and an R2 binding for design files. The current Worker route checkpoint covers:
+
+- PBKDF2-SHA256 Worker-native signup, login, logout, and `/auth/me`
+- HttpOnly session cookies and explicit-origin CORS
+- Vendor profiles, public storefronts, printers, MOQ, and buyer contacts
+- Buyer RFQs with idempotency keys
+- Vendor quotes and buyer quote acceptance
+
+Create the D1 database and R2 bucket in Cloudflare, then replace the placeholder D1 `database_id` in `apps/api-worker/wrangler.jsonc`. Configure the production-only secrets through Wrangler or the Cloudflare dashboard:
+
+```bash
+cd apps/api-worker
+pnpm exec wrangler secret put SESSION_SECRET
+pnpm exec wrangler d1 migrations apply 3od-production --remote
+pnpm exec wrangler deploy
+```
+
+For local Worker development, use a local D1/R2 binding through Wrangler and set the local `APP_ORIGIN` to the frontend origin. Do not put database credentials, session secrets, or R2 access keys in the frontend environment. The existing PostgreSQL API remains the fallback until the Worker API completes upload-intent, import/export, and end-to-end cutover checks.
+
 ## Seed demo marketplace data
 
 To create synthetic buyer/vendor accounts, a published demo workshop, three printers with MOQ values, three open RFQs, demo quotes, and one demo contact:
@@ -139,7 +161,7 @@ Never commit database credentials. Use `.env.example` as a reference and keep re
 
 ## Cloudflare R2 setup
 
-The API generates short-lived presigned upload URLs. Configure:
+The existing PostgreSQL API generates short-lived presigned upload URLs. The Cloudflare API Worker will use the `FILES` R2 binding instead, so no R2 access key is needed by the Worker. Configure the bucket binding in `apps/api-worker/wrangler.jsonc` and keep any legacy S3-compatible credentials server-side only:
 
 ```bash
 export R2_ENDPOINT="https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com"
@@ -219,7 +241,7 @@ Implemented foundation:
 - Idempotent RFQ creation
 - Quote creation and acceptance state transitions
 - Prisma-backed production store
-- Cloudflare R2 presigned uploads
+- Cloudflare R2 presigned uploads in the existing API; Worker-native R2 upload intents are the next migration checkpoint
 - Vendor storefronts, printer listings, configurable MOQ, and buyer-to-vendor contact requests
 - CORS, Helmet, rate limits, validation, and structured errors
 
@@ -232,6 +254,7 @@ Still required before a public launch:
 - Admin moderation tools
 - CSRF protection and malware scanning for uploaded files
 - Production monitoring and deployment configuration
+- Cloudflare API upload intents, D1 import/export verification, and end-to-end cutover
 
 The frontend deployment configuration is now included for Cloudflare Workers. A public launch still needs the production API, database, R2 CORS policy, domain, secrets, backups, monitoring, and the operational items above.
 

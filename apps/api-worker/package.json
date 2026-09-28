@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@3od/contracts": "workspace:*",
     "@3od/domain": "workspace:*",
     "hono": "^4.7.2"
   },

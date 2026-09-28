@@ -1,12 +1,16 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { validateEnvironment, type WorkerEnv } from './env.js';
+import { registerAuthRoutes } from './routes/auth.js';
+import { registerMarketplaceRoutes } from './routes/marketplace.js';
 
 type AppVariables = {
   requestId: string;
 };
 
 export type ApiApp = Hono<{ Bindings: WorkerEnv; Variables: AppVariables }>;
+export type ApiContext = Context<{ Bindings: WorkerEnv; Variables: AppVariables }>;
 
 export class JsonBodyError extends Error {
   readonly statusCode = 400;
@@ -66,6 +70,9 @@ export function createApp(): ApiApp {
   });
 
   app.get('/', (context) => context.json({ ok: true, service: '3od-api-worker' }));
+
+  registerAuthRoutes(app);
+  registerMarketplaceRoutes(app);
 
   app.onError((error, context) => {
     const statusCode = isHttpError(error) ? error.statusCode : 500;
