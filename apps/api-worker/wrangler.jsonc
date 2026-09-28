@@ -1,28 +1,30 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "3od-api-worker",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-09-28",
-  "compatibility_flags": ["nodejs_compat"],
-  "vars": {
-    "APP_ORIGIN": "http://localhost:3002",
-    "NODE_ENV": "development"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "3od-production",
-      "database_id": "local-placeholder"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "FILES",
-      "bucket_name": "3od-production",
-      "preview_bucket_name": "3od-production-preview"
-    }
-  ],
-  "observability": {
-    "enabled": true
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "3od-api-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-28",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"vars": {
+		"APP_ORIGIN": "http://localhost:3002",
+		"NODE_ENV": "development"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "3od-prod",
+			"database_id": "df9ef664-c9b2-41af-b9f1-c0ae2fdcbff6"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "FILES",
+			"bucket_name": "3od-production",
+			"preview_bucket_name": "3od-production-preview"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
 }
