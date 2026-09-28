@@ -7,8 +7,8 @@
 		"nodejs_compat"
 	],
 	"vars": {
-		"APP_ORIGIN": "http://localhost:3002",
-		"NODE_ENV": "development"
+		"APP_ORIGIN": "https://3od-web.your-account.workers.dev",
+		"NODE_ENV": "production"
 	},
 	"d1_databases": [
 		{
