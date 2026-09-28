@@ -154,11 +154,15 @@ Before public launch, add CSRF protection for cookie-authenticated mutations, ma
 
 ## Deployment shape
 
-- Deploy `apps/web` as a Next.js service.
+- Deploy `apps/web` to Cloudflare Workers using the OpenNext adapter. The generated Worker entrypoint is `.open-next/worker.js` and static assets are served from the `.open-next/assets` binding.
 - Deploy `apps/api` as a long-running API service.
 - Deploy `apps/worker` as a separate background worker.
 - Use managed PostgreSQL for the Prisma database.
 - Use Cloudflare R2 for design files.
 - Use managed Redis for queues and rate-limit/event infrastructure.
+
+The Cloudflare Worker is the public frontend edge layer; it does not replace the API. Browser requests travel from the Worker-hosted Next.js application to the HTTPS API, while PostgreSQL and R2 remain server-side resources owned by the API. Only `NEXT_PUBLIC_*` values belong in the frontend deployment. Database URLs, session secrets, R2 credentials, and service credentials must remain on the API/worker environments.
+
+The frontend deployment is configured in `apps/web/wrangler.jsonc` and `apps/web/open-next.config.ts`. The Cloudflare build generates the Worker output, and the deployment command publishes that output through Wrangler. The production API must allow the final frontend origin through its CORS configuration.
 
 See [README.md](README.md) for setup and terminal commands.

@@ -59,6 +59,45 @@ pnpm --filter @3od/web exec next dev --hostname 127.0.0.1 --port 3002
 
 The development API allowlist includes ports 3000, 3001, and 3002. Restart the API after changing ports or environment variables so CORS settings are reloaded.
 
+## Deploy the web app to Cloudflare Workers
+
+The frontend is configured for Cloudflare Workers through the OpenNext adapter. Keep the repository root as the Cloudflare build root so the pnpm workspace and lockfile are available.
+
+From `apps/web`, authenticate Wrangler once:
+
+```bash
+cd apps/web
+pnpm exec wrangler login
+```
+
+Set the public build-time variables in the Cloudflare deployment settings. These are not secrets:
+
+```text
+NEXT_PUBLIC_API_MODE=api
+NEXT_PUBLIC_API_URL=https://api.example.com
+NEXT_PUBLIC_APP_URL=https://app.example.com
+```
+
+Build and preview the Worker locally:
+
+```bash
+pnpm preview:cloudflare
+```
+
+Deploy from the repository root after authentication:
+
+```bash
+pnpm --filter @3od/web deploy:cloudflare
+```
+
+For a connected Cloudflare Workers build, use the repository root as the working directory and:
+
+```text
+Build command: pnpm install --frozen-lockfile && pnpm --filter @3od/web deploy:cloudflare
+```
+
+The Worker serves the Next.js frontend and calls the separately deployed API over HTTPS. Keep `DATABASE_URL`, `SESSION_SECRET`, R2 access keys, and other private values on the API service; never add them to the frontend build. After choosing a production frontend domain, add it to the API `APP_ORIGIN` and `WEB_ORIGINS` values and restart the API so browser requests pass CORS checks.
+
 ## Seed demo marketplace data
 
 To create synthetic buyer/vendor accounts, a published demo workshop, three printers with MOQ values, three open RFQs, demo quotes, and one demo contact:
@@ -193,5 +232,7 @@ Still required before a public launch:
 - Admin moderation tools
 - CSRF protection and malware scanning for uploaded files
 - Production monitoring and deployment configuration
+
+The frontend deployment configuration is now included for Cloudflare Workers. A public launch still needs the production API, database, R2 CORS policy, domain, secrets, backups, monitoring, and the operational items above.
 
 See [architecture.md](architecture.md) for system boundaries and runtime flows.

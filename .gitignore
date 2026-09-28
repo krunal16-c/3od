@@ -3,6 +3,8 @@ node_modules/
 .turbo/
 dist/
 .next/
+.open-next/
+.wrangler/
 coverage/
 playwright-report/
 test-results/

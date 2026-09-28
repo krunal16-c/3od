@@ -4,6 +4,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "preview:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test -c ../../playwright.config.ts",
@@ -12,12 +14,14 @@
   "dependencies": {
     "@3od/config": "workspace:*",
     "@3od/ui": "workspace:*",
+    "@opennextjs/cloudflare": "^1.20.6",
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.3",
-    "@types/react-dom": "^19.0.2"
+    "@types/react-dom": "^19.0.2",
+    "wrangler": "^4.142.0"
   }
 }

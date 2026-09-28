@@ -103,8 +103,19 @@ export class MarketplaceController {
   @Get('/vendors/:slug')
   async publicVendor(@Param('slug') slug: string) {
     const vendor = await this.store.findVendorProfileBySlug(slug); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
-    const { userId: _userId, ...publicProfile } = vendor!;
-    return { vendor: publicProfile, printers: await this.store.listPrintersByVendor(vendor!.id) };
+    const publicProfile = {
+      id: vendor.id,
+      slug: vendor.slug,
+      businessName: vendor.businessName,
+      bio: vendor.bio,
+      city: vendor.city,
+      state: vendor.state,
+      serviceAreas: vendor.serviceAreas,
+      isPublished: vendor.isPublished,
+      createdAt: vendor.createdAt,
+      updatedAt: vendor.updatedAt,
+    };
+    return { vendor: publicProfile, printers: await this.store.listPrintersByVendor(vendor.id) };
   }
 
   @Post('/vendors/:slug/contact')
