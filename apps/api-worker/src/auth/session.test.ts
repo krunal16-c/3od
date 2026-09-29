@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createSessionToken, hashSessionToken, parseSessionCookie } from './session.js';
+import { clearSessionCookie, createSessionToken, hashSessionToken, parseSessionCookie, sessionCookie } from './session.js';
 
 describe('Worker cookie sessions', () => {
   it('creates an opaque token and stores only its SHA-256 digest', async () => {
@@ -16,5 +16,12 @@ describe('Worker cookie sessions', () => {
   it('extracts only the 3oD session cookie from a cookie header', () => {
     expect(parseSessionCookie('theme=dark; 3od_session=opaque-token; other=value')).toBe('opaque-token');
     expect(parseSessionCookie('theme=dark')).toBeNull();
+  });
+
+  it('uses cross-site secure cookies in production', () => {
+    expect(sessionCookie('opaque-token', true)).toContain('SameSite=None;');
+    expect(sessionCookie('opaque-token', true)).toContain('; Secure');
+    expect(clearSessionCookie(true)).toContain('SameSite=None;');
+    expect(sessionCookie('opaque-token', false)).toContain('SameSite=Lax;');
   });
 });

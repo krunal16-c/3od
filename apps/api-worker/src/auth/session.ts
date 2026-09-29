@@ -25,11 +25,13 @@ export function parseSessionCookie(header: string | null | undefined): string | 
 }
 
 export function sessionCookie(token: string, secure: boolean): string {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}${secure ? '; Secure' : ''}`;
+  const sameSite = secure ? 'None' : 'Lax';
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${SESSION_TTL_SECONDS}${secure ? '; Secure' : ''}`;
 }
 
 export function clearSessionCookie(secure: boolean): string {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`;
+  const sameSite = secure ? 'None' : 'Lax';
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=0${secure ? '; Secure' : ''}`;
 }
 
 export function publicUser(user: User) {
