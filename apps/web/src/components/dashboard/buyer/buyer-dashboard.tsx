@@ -55,7 +55,11 @@ const rfqs = [
   { name: 'Enclosure bracket', meta: 'PETG · 12 parts · Due 02 Oct', status: 'Awaiting quotes', price: 'Closes in 2d 8h', tone: 'blue' },
 ];
 
-function NavContent() {
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || '3D';
+}
+
+function NavContent({ accountName }: { accountName: string }) {
   return (
     <>
       <Link className={styles.brand} href="/" aria-label="3oD by Zester Product Studio home"><span>3</span>oD<small>by Zester Product Studio</small></Link>
@@ -73,7 +77,7 @@ function NavContent() {
       </nav>
       <div className={styles.sidebarBottom}>
         <div className={styles.trustNote}><Icon name="spark" size={16} /><span><strong>Made for makers</strong>Quotes from verified Indian print partners.</span></div>
-        <Link className={styles.account} href="/login"><span className={styles.avatar}>AK</span><span><strong>Arjun Kapoor</strong><small>Personal account</small></span><Icon name="chevron" size={15} /></Link>
+        <Link className={styles.account} href="/login"><span className={styles.avatar}>{initials(accountName)}</span><span><strong>{accountName}</strong><small>Personal account</small></span><Icon name="chevron" size={15} /></Link>
       </div>
     </>
   );
@@ -85,18 +89,19 @@ function SectionTitle({ eyebrow, title, action }: { eyebrow: string; title: stri
 
 export function BuyerDashboard() {
   const [liveRfqs, setLiveRfqs] = useState<RfqRecord[]>([]);
-  const [displayName, setDisplayName] = useState('Arjun');
+  const [accountName, setAccountName] = useState('Your account');
   useEffect(() => {
     void getMyRfqs().then(({ rfqs: nextRfqs }) => setLiveRfqs(nextRfqs)).catch(() => undefined);
-    void getCurrentUser().then(({ user }) => setDisplayName(user.name.split(' ')[0] || 'there')).catch(() => undefined);
+    void getCurrentUser().then(({ user }) => setAccountName(user.name || user.email)).catch(() => undefined);
   }, []);
+  const displayName = accountName.split(/\s+/)[0] || 'there';
   const visibleRfqs = liveRfqs.length > 0 ? liveRfqs.slice(0, 2).map((rfq, index) => ({ name: rfq.title, meta: `${rfq.material ?? 'Material flexible'} · ${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, status: rfq.state === 'QUOTES_RECEIVED' ? 'Quotes ready' : 'Awaiting quotes', price: rfq.state === 'QUOTES_RECEIVED' ? 'Compare quotes' : 'Open for quotes', tone: index % 2 === 0 ? 'orange' : 'blue' })) : rfqs;
   return (
     <div className={styles.dashboard}>
-      <aside className={styles.sidebar}><NavContent /></aside>
+      <aside className={styles.sidebar}><NavContent accountName={accountName} /></aside>
       <details className={styles.mobileMenu}>
         <summary aria-label="Open dashboard menu"><span className={styles.mobileLogo}><span>3</span>oD</span><span className={styles.menuIcon}>☰</span></summary>
-        <div className={styles.mobilePanel}><NavContent /></div>
+        <div className={styles.mobilePanel}><NavContent accountName={accountName} /></div>
       </details>
       <main className={styles.main}>
         <header className={styles.topbar}>

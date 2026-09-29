@@ -8,7 +8,8 @@ const navItems = [
   { label: 'Earnings', href: '/dashboard/owner/earnings', icon: 'wallet' as const },
 ];
 
-export function OwnerSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function OwnerSidebar({ open, onClose, ownerName }: { open: boolean; onClose: () => void; ownerName: string }) {
+  const initials = ownerName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || '3D';
   return (
     <>
       <aside className={`od-sidebar ${open ? 'od-sidebar-open' : ''}`}>
@@ -16,7 +17,7 @@ export function OwnerSidebar({ open, onClose }: { open: boolean; onClose: () => 
           <Link className="od-brand" href="/" onClick={onClose}><span>3</span>oD</Link>
           <button className="od-icon-button od-close-button" onClick={onClose} aria-label="Close navigation"><Icon name="close" size={19} /></button>
         </div>
-        <div className="od-workspace-chip"><span className="od-avatar od-avatar-small">AK</span><span><strong>Arjun Kapadia</strong><small>Printer owner</small></span><Icon name="chevron" size={14} /></div>
+        <div className="od-workspace-chip"><span className="od-avatar od-avatar-small">{initials}</span><span><strong>{ownerName}</strong><small>Printer owner</small></span><Icon name="chevron" size={14} /></div>
         <p className="od-nav-label">Workspace</p>
         <nav className="od-nav" aria-label="Owner workspace navigation">
           {navItems.map((item) => <Link className={`od-nav-link ${item.active ? 'od-nav-active' : ''}`} href={item.href} key={item.label} onClick={onClose}><Icon name={item.icon} size={18} /><span>{item.label}</span>{item.badge && <b>{item.badge}</b>}</Link>)}

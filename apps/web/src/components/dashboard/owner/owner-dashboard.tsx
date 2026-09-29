@@ -25,22 +25,22 @@ export function OwnerDashboard() {
   const [showComposer, setShowComposer] = useState(false);
   const [liveRfqs, setLiveRfqs] = useState<RfqRecord[]>([]);
   const [printerCount, setPrinterCount] = useState(0);
-  const [ownerName, setOwnerName] = useState('Arjun');
+  const [ownerName, setOwnerName] = useState('Your account');
   useEffect(() => {
     void getOpenRfqs().then(({ rfqs: nextRfqs }) => setLiveRfqs(nextRfqs)).catch(() => undefined);
     void getMyPrinters().then(({ printers }) => setPrinterCount(printers.length)).catch(() => undefined);
-    void getCurrentUser().then(({ user }) => setOwnerName(user.name.split(' ')[0] || 'there')).catch(() => undefined);
+    void getCurrentUser().then(({ user }) => setOwnerName(user.name || user.email)).catch(() => undefined);
   }, []);
   const visibleRfqs = liveRfqs.length > 0 ? liveRfqs.slice(0, 4).map((rfq, index) => ({ initials: 'RF', name: 'New buyer request', meta: `${rfq.material ?? 'Flexible material'} · India`, title: rfq.title, detail: `${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, amount: 'Reply with quote', color: index % 2 === 0 ? 'orange' : 'blue' })) : rfqs;
 
   return (
     <div className="od-app">
-      <OwnerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <OwnerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} ownerName={ownerName} />
       <main className="od-main">
         <header className="od-header">
           <button className="od-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Icon name="menu" size={21} /></button>
           <div className="od-breadcrumb"><span>Workspace</span><Icon name="chevron" size={13} /><strong>Overview</strong></div>
-          <div className="od-header-actions"><button className="od-header-icon" aria-label="Search"><Icon name="search" size={18} /></button><button className="od-header-icon od-bell" aria-label="Notifications"><Icon name="bell" size={18} /><i /></button><Link className="od-header-avatar" href="#profile">AK</Link></div>
+          <div className="od-header-actions"><button className="od-header-icon" aria-label="Search"><Icon name="search" size={18} /></button><button className="od-header-icon od-bell" aria-label="Notifications"><Icon name="bell" size={18} /><i /></button><Link className="od-header-avatar" href="#profile">{ownerName.slice(0, 2).toUpperCase()}</Link></div>
         </header>
 
         <div className="od-content">
