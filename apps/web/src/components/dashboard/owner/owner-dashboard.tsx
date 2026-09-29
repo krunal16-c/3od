@@ -6,23 +6,10 @@ import { useEffect } from 'react';
 import { getCurrentUser, getMyPrinters, getOpenRfqs, type RfqRecord } from '../../../lib/api-client';
 import { Icon } from './icons';
 import { OwnerSidebar } from './sidebar';
-import { StatCard } from './stat-card';
-
-const rfqs = [
-  { initials: 'SN', name: 'Sahana Nair', meta: 'Bengaluru · PLA', title: 'Enclosure for air quality sensor', detail: '2 parts · 3 days', amount: '₹1,200–1,800', color: 'orange' },
-  { initials: 'RM', name: 'Rohan Mehta', meta: 'Pune · PETG', title: 'Custom cable management clips', detail: '18 parts · 5 days', amount: '₹800–1,100', color: 'blue' },
-  { initials: 'IP', name: 'Isha Patel', meta: 'Ahmedabad · TPU', title: 'Flexible phone stand prototype', detail: '1 part · 2 days', amount: '₹650–950', color: 'violet' },
-];
-
-const jobs = [
-  { id: '#3OD-1048', title: 'Drone landing gear', customer: 'Vikram S. · Mumbai', status: 'Printing', progress: 64, amount: '₹2,450', tone: 'orange' },
-  { id: '#3OD-1039', title: 'Desk organiser set', customer: 'Meera K. · Delhi', status: 'Ready to ship', progress: 100, amount: '₹1,680', tone: 'green' },
-];
 
 export function OwnerDashboard() {
   const [available, setAvailable] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showComposer, setShowComposer] = useState(false);
   const [liveRfqs, setLiveRfqs] = useState<RfqRecord[]>([]);
   const [printerCount, setPrinterCount] = useState(0);
   const [ownerName, setOwnerName] = useState('Your account');
@@ -31,11 +18,11 @@ export function OwnerDashboard() {
     void getMyPrinters().then(({ printers }) => setPrinterCount(printers.length)).catch(() => undefined);
     void getCurrentUser().then(({ user }) => setOwnerName(user.name || user.email)).catch(() => undefined);
   }, []);
-  const visibleRfqs = liveRfqs.length > 0 ? liveRfqs.slice(0, 4).map((rfq, index) => ({ initials: 'RF', name: 'New buyer request', meta: `${rfq.material ?? 'Flexible material'} · India`, title: rfq.title, detail: `${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, amount: 'Reply with quote', color: index % 2 === 0 ? 'orange' : 'blue' })) : rfqs;
+  const visibleRfqs = liveRfqs.slice(0, 4).map((rfq, index) => ({ initials: 'RF', name: 'Buyer request', meta: `${rfq.material ?? 'Flexible material'} · India`, title: rfq.title, detail: `${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, amount: 'Review request', color: index % 2 === 0 ? 'orange' : 'blue' }));
 
   return (
     <div className="od-app">
-      <OwnerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} ownerName={ownerName} />
+      <OwnerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} ownerName={ownerName} rfqCount={liveRfqs.length} />
       <main className="od-main">
         <header className="od-header">
           <button className="od-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Icon name="menu" size={21} /></button>
@@ -54,36 +41,26 @@ export function OwnerDashboard() {
             <button className={`od-toggle ${available ? 'od-toggle-on' : ''}`} role="switch" aria-checked={available} onClick={() => setAvailable(!available)}><span className="od-toggle-knob" /><span>{available ? 'Available' : 'Paused'}</span></button>
           </section>
 
-          <section className="od-section" id="earnings">
-            <div className="od-section-heading"><div><p className="od-kicker">At a glance</p><h2>Workshop pulse</h2></div><button className="od-period-button">This month <Icon name="chevron" size={14} /></button></div>
-            <div className="od-stats-grid"><StatCard label="Earned this month" value="₹18,420" change="↑ 24% vs last month" tone="orange" icon="wallet" /><StatCard label="Jobs completed" value="12" change="↑ 3 from last month" tone="cream" icon="printer" /><StatCard label="Quote win rate" value="68%" change="↑ 8% vs last month" tone="green" icon="bolt" /><StatCard label="Average turnaround" value="2.4 days" change="↓ 0.6 days faster" tone="ink" icon="clock" /></div>
-          </section>
-
           <div className="od-dashboard-grid">
             <section className="od-panel od-rfq-panel" id="rfq-inbox">
-              <div className="od-panel-heading"><div><p className="od-kicker">Needs your eye</p><h2>Incoming RFQs <span className="od-count">4</span></h2></div><a className="od-panel-link" href="#all-rfqs">See all <Icon name="arrow" size={15} /></a></div>
-              <div className="od-rfq-list">{visibleRfqs.map((rfq) => <article className="od-rfq-row" key={rfq.title}><span className={`od-avatar od-avatar-${rfq.color}`}>{rfq.initials}</span><div className="od-rfq-main"><div className="od-rfq-customer"><strong>{rfq.name}</strong><span>{rfq.meta}</span></div><h3>{rfq.title}</h3><p><Icon name="clock" size={13} /> {rfq.detail}</p></div><div className="od-rfq-price"><strong>{rfq.amount}</strong><button onClick={() => setShowComposer(true)}>Quote <Icon name="arrow" size={14} /></button></div></article>)}</div>
-              <article className="od-more-rfq"><span className="od-more-icon"><Icon name="inbox" size={17} /></span><div><strong>1 more request is waiting</strong><p>Respond within 18 hours to keep your fast-response badge.</p></div><Icon name="chevron" size={15} /></article>
+              <div className="od-panel-heading"><div><p className="od-kicker">Needs your eye</p><h2>Incoming RFQs {liveRfqs.length > 0 && <span className="od-count">{liveRfqs.length}</span>}</h2></div><Link className="od-panel-link" href="/dashboard/owner/rfqs">See all <Icon name="arrow" size={15} /></Link></div>
+              <div className="od-rfq-list">{visibleRfqs.length > 0 ? visibleRfqs.map((rfq) => <article className="od-rfq-row" key={rfq.title}><span className={`od-avatar od-avatar-${rfq.color}`}>{rfq.initials}</span><div className="od-rfq-main"><div className="od-rfq-customer"><strong>{rfq.name}</strong><span>{rfq.meta}</span></div><h3>{rfq.title}</h3><p><Icon name="clock" size={13} /> {rfq.detail}</p></div><div className="od-rfq-price"><strong>{rfq.amount}</strong><Link href="/dashboard/owner/rfqs">Review <Icon name="arrow" size={14} /></Link></div></article>) : <p className="od-empty-state">No buyer requests yet. New RFQs will appear here when customers submit them.</p>}</div>
             </section>
 
             <section className="od-panel od-quote-panel">
-              <div className="od-panel-heading"><div><p className="od-kicker">Quick action</p><h2>Make a great quote</h2></div><span className="od-spark"><Icon name="bolt" size={16} /></span></div>
-              <p className="od-quote-intro">A clear quote wins trust. Start with a request from your inbox and make it yours.</p>
-              <div className="od-quote-preview"><div className="od-preview-top"><span>3oD QUOTE</span><span>PREVIEW</span></div><div className="od-preview-title"><span className="od-preview-part" /><div><strong>Enclosure for air quality sensor</strong><small>PLA · matte black · 2 parts</small></div></div><div className="od-preview-line"><span>Print cost</span><strong>₹1,420</strong></div><div className="od-preview-line"><span>Delivery to Bengaluru</span><strong>₹120</strong></div><div className="od-preview-total"><span>Your quote</span><strong>₹1,540</strong></div></div>
-              <button className="od-dark-button" onClick={() => setShowComposer(true)}>Open quote composer <Icon name="arrow" size={15} /></button>
-              <p className="od-quote-note">Typical response time: <strong>under 2 hours</strong></p>
+              <div className="od-panel-heading"><div><p className="od-kicker">Next step</p><h2>Ready to quote?</h2></div><span className="od-spark"><Icon name="bolt" size={16} /></span></div>
+              <p className="od-quote-intro">When a buyer request arrives, open your RFQ inbox to review the design brief and send a real price and lead time.</p>
+              <Link className="od-dark-button" href="/dashboard/owner/rfqs">Open RFQ inbox <Icon name="arrow" size={15} /></Link>
             </section>
           </div>
 
           <div className="od-lower-grid">
-            <section className="od-panel od-jobs-panel" id="active-jobs"><div className="od-panel-heading"><div><p className="od-kicker">In production</p><h2>Active jobs</h2></div><a className="od-panel-link" href="#all-jobs">Manage jobs <Icon name="arrow" size={15} /></a></div><div className="od-jobs-list">{jobs.map((job) => <article className="od-job-row" key={job.id}><div className="od-job-id">{job.id}<span className={`od-job-status od-job-status-${job.tone}`}>{job.status}</span></div><div className="od-job-info"><strong>{job.title}</strong><span>{job.customer}</span></div><div className="od-progress-wrap"><div className="od-progress-label"><span>{job.progress === 100 ? 'Complete' : 'Printing in progress'}</span><strong>{job.progress}%</strong></div><div className="od-progress"><span style={{ width: `${job.progress}%` }} /></div></div><strong className="od-job-amount">{job.amount}</strong><button className="od-more-button" aria-label={`More options for ${job.title}`}><Icon name="more" size={17} /></button></article>)}</div></section>
-            <section className="od-panel od-checklist-panel"><div className="od-panel-heading"><div><p className="od-kicker">Keep growing</p><h2>Set up your shop</h2></div><span className="od-progress-badge">3 / 5</span></div><p className="od-checklist-copy">Complete your profile to appear higher in customer searches.</p><div className="od-checklist"><div className="od-check-done"><span><Icon name="check" size={13} /></span><div><strong>Add your first printer</strong><small>Prusa MK4 · FDM</small></div></div><div className="od-check-done"><span><Icon name="check" size={13} /></span><div><strong>Set your service area</strong><small>Within 25 km of Indiranagar</small></div></div><div className="od-check-current"><span>3</span><div><strong>Upload a work sample</strong><small>Show customers what you make</small></div><button aria-label="Complete upload sample"><Icon name="arrow" size={14} /></button></div><div className="od-check-next"><span>4</span><div><strong>Add payout details</strong><small>Required before your first payout</small></div></div><div className="od-check-next"><span>5</span><div><strong>Set your availability</strong><small>Tell buyers when you’re online</small></div></div></div><a className="od-checklist-link" href="#profile">Finish profile <Icon name="arrow" size={14} /></a></section>
+            <section className="od-panel od-checklist-panel"><div className="od-panel-heading"><div><p className="od-kicker">Keep growing</p><h2>Set up your shop</h2></div></div><p className="od-checklist-copy">Complete your profile to appear higher in customer searches.</p><div className="od-checklist"><div className={printerCount > 0 ? 'od-check-done' : 'od-check-current'}><span>{printerCount > 0 ? <Icon name="check" size={13} /> : '1'}</span><div><strong>Add your first printer</strong><small>{printerCount > 0 ? `${printerCount} active printer${printerCount === 1 ? '' : 's'} listed` : 'No printers listed yet'}</small></div><Link href="/dashboard/owner/printers" aria-label="Manage printers"><Icon name="arrow" size={14} /></Link></div><div className="od-check-next"><span>2</span><div><strong>Set your service area</strong><small>Add the cities you can serve</small></div></div><div className="od-check-next"><span>3</span><div><strong>Upload a work sample</strong><small>Show customers what you make</small></div></div></div><Link className="od-checklist-link" href="/vendor">Manage workshop profile <Icon name="arrow" size={14} /></Link></section>
           </div>
 
           <footer className="od-footer"><span>3oD by Zester Product Studio <span className="od-footer-dot">•</span> Built for makers in India</span><span><Link href="/for-printer-owners">How 3oD works</Link><Link href="/login">Sign out</Link></span></footer>
         </div>
       </main>
-      {showComposer && <div className="od-modal-backdrop" role="presentation" onClick={() => setShowComposer(false)}><div className="od-modal" role="dialog" aria-modal="true" aria-labelledby="quote-dialog-title" onClick={(event) => event.stopPropagation()}><button className="od-modal-close" onClick={() => setShowComposer(false)} aria-label="Close quote composer"><Icon name="close" size={18} /></button><p className="od-kicker">Quote composer</p><h2 id="quote-dialog-title">Ready to send a thoughtful quote?</h2><p>This preview is wired for the product flow. Connect your account to send a quote and start a conversation with the customer.</p><Link className="od-primary-button od-modal-cta" href="/login">Continue to sign in <Icon name="arrow" size={16} /></Link></div></div>}
       <style jsx global>{`
         .od-app { --od-ink:#1e201d; --od-muted:#70736c; --od-line:#dedfd8; --od-paper:#f7f8f3; --od-white:#fffefa; --od-orange:#f4633f; --od-orange-soft:#fff0e9; --od-green:#0f8a67; --od-green-soft:#e6f4eb; --od-blue:#5677d8; --od-violet:#9672ca; min-height:100vh; display:flex; background:var(--od-paper); color:var(--od-ink); font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
         .od-app * { box-sizing:border-box; } .od-app a { color:inherit; text-decoration:none; } .od-app button { font:inherit; }

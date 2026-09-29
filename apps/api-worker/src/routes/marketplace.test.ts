@@ -35,8 +35,8 @@ class TestD1 implements D1DatabaseLike {
   }
 }
 
-function environment(db = new TestD1()) {
-  return { APP_ORIGIN: origin, NODE_ENV: 'test' as const, SESSION_SECRET: 'worker-session-secret-that-is-long-enough', DB: db as unknown as D1Database, FILES: {} as R2Bucket };
+function environment(db = new TestD1(), files: R2Bucket = {} as R2Bucket) {
+  return { APP_ORIGIN: origin, NODE_ENV: 'test' as const, SESSION_SECRET: 'worker-session-secret-that-is-long-enough', DB: db as unknown as D1Database, FILES: files };
 }
 
 function cookie(response: Response) { return response.headers.get('set-cookie')?.split(';', 1)[0] ?? ''; }
@@ -140,5 +140,36 @@ describe('Worker marketplace routes', () => {
     }, environment(db));
     expect(response.status).toBe(400);
     expect(await json(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('stores an RFQ design file in the configured R2 bucket', async () => {
+    const app = createApp();
+    const db = new TestD1();
+    const stored: { key?: string; body?: unknown; contentType?: string } = {};
+    const files = {
+      put: async (key: string, body: unknown, options?: { httpMetadata?: { contentType?: string } }) => {
+        stored.key = key;
+        stored.body = body;
+        stored.contentType = options?.httpMetadata?.contentType;
+        return undefined;
+      },
+    } as unknown as R2Bucket;
+    const buyerCookie = await signup(app, db, 'file-buyer@example.com', 'buyer');
+    const rfqResponse = await app.request('/rfqs', {
+      method: 'POST', headers: { Origin: origin, Cookie: buyerCookie, 'Content-Type': 'application/json', 'Idempotency-Key': 'file-rfq-key' },
+      body: JSON.stringify({ title: 'Uploaded bracket', quantity: 1 }),
+    }, environment(db, files));
+    const rfqId = ((await json(rfqResponse)).rfq as JsonObject).id as string;
+    const form = new FormData();
+    form.append('file', new File(['solid bracket'], 'bracket.stl', { type: 'model/stl' }));
+
+    const response = await app.request(`/rfqs/${rfqId}/files`, {
+      method: 'POST', headers: { Origin: origin, Cookie: buyerCookie }, body: form,
+    }, environment(db, files));
+
+    expect(response.status).toBe(201);
+    expect(await json(response)).toMatchObject({ file: { originalFilename: 'bracket.stl', contentType: 'model/stl', state: 'PENDING' } });
+    expect(stored.key).toContain(`rfqs/${rfqId}/`);
+    expect(stored.contentType).toBe('model/stl');
   });
 });

@@ -1,4 +1,3 @@
-export type ApiMode = 'api' | 'demo';
 export type ApiRole = 'buyer' | 'printer_owner';
 
 export type ApiUser = {
@@ -62,8 +61,6 @@ export class ApiClientError extends Error {
   }
 }
 
-export const apiMode: ApiMode = process.env.NEXT_PUBLIC_API_MODE === 'demo' ? 'demo' : 'api';
-
 const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -123,6 +120,28 @@ export function createUploadIntent(rfqId: string, file: File) {
     method: 'POST',
     body: { fileName: file.name, contentType: file.type || 'application/octet-stream', byteSize: file.size },
   });
+}
+
+export async function uploadRfqFile(rfqId: string, file: File) {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  const response = await fetch(`${apiUrl}/rfqs/${encodeURIComponent(rfqId)}/files`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  const body = await readResponseBody(response);
+  if (!response.ok) {
+    const payload = isRecord(body) ? body as ApiErrorPayload : {};
+    throw new ApiClientError({
+      statusCode: typeof payload.statusCode === 'number' ? payload.statusCode : response.status,
+      code: typeof payload.code === 'string' ? payload.code : 'HTTP_ERROR',
+      message: typeof payload.message === 'string' ? payload.message : `Request failed with status ${response.status}.`,
+      requestId: typeof payload.requestId === 'string' ? payload.requestId : undefined,
+      details: payload.details,
+    });
+  }
+  return body as { file: { id: string } };
 }
 
 export async function uploadDesign(uploadUrl: string, file: File) {

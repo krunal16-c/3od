@@ -13,6 +13,14 @@ function httpError(statusCode: number, code: string, message: string): never {
 
 function repositoryFor(context: ApiContext) { return new D1MarketplaceRepository(context.env.DB!); }
 
+const MAX_DESIGN_FILE_BYTES = 25 * 1024 * 1024;
+const allowedDesignExtensions = new Set(['.stl', '.obj', '.step', '.stp', '.3mf']);
+
+function safeFilename(filename: string) {
+  const normalized = filename.trim().replace(/[^a-zA-Z0-9._-]/g, '-');
+  return normalized || 'design-file';
+}
+
 async function current(context: ApiContext, role?: 'BUYER' | 'PRINTER_OWNER') {
   const user = await authenticate(context.req.raw, repositoryFor(context));
   if (!user) httpError(401, 'UNAUTHENTICATED', 'Authentication required');
@@ -100,6 +108,27 @@ export function registerMarketplaceRoutes(app: ApiApp) {
     const repository = repositoryFor(context);
     const rfq = await repository.createRfq({ buyerId: authenticated.user.id, idempotencyKey, title: input.data.title, state: RfqState.OPEN_FOR_QUOTES, description: input.data.notes ?? null, quantity: input.data.quantity, material: input.data.material ?? null, finish: input.data.finish ?? null, deadline: input.data.neededBy ?? null });
     return context.json({ rfq }, 201);
+  });
+
+  app.post('/rfqs/:id/files', async (context) => {
+    const authenticated = await current(context, 'BUYER');
+    const repository = repositoryFor(context);
+    const rfq = await repository.findRfqById(context.req.param('id'));
+    if (!rfq || rfq.buyerId !== authenticated.user.id) httpError(403, 'FORBIDDEN', 'You do not have access to this resource.');
+    if (!context.env.FILES?.put) httpError(503, 'STORAGE_UNAVAILABLE', 'File storage is not configured.');
+
+    const form = await context.req.raw.formData();
+    const entry = form.get('file');
+    if (!(entry instanceof File) || entry.size === 0) httpError(400, 'VALIDATION_ERROR', 'Attach a non-empty design file.');
+    if (entry.size > MAX_DESIGN_FILE_BYTES) httpError(413, 'FILE_TOO_LARGE', 'Design files must be 25 MB or smaller.');
+    const filename = safeFilename(entry.name);
+    const extension = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+    if (!allowedDesignExtensions.has(extension)) httpError(400, 'VALIDATION_ERROR', 'Use an STL, OBJ, STEP, STP, or 3MF design file.');
+
+    const storageKey = `rfqs/${rfq.id}/${crypto.randomUUID()}-${filename}`;
+    await context.env.FILES.put(storageKey, entry, { httpMetadata: { contentType: entry.type || 'application/octet-stream' } });
+    const file = await repository.createRfqFile({ rfqId: rfq.id, storageKey, originalFilename: filename, contentType: entry.type || 'application/octet-stream', byteSize: entry.size, state: 'PENDING' });
+    return context.json({ file }, 201);
   });
 
   app.get('/rfqs/mine', async (context) => { const authenticated = await current(context, 'BUYER'); return context.json({ rfqs: await repositoryFor(context).listRfqsByBuyer(authenticated.user.id) }); });

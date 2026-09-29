@@ -118,20 +118,9 @@ pnpm exec wrangler d1 migrations apply 3od-production --remote
 pnpm exec wrangler deploy
 ```
 
-For local Worker development, use a local D1/R2 binding through Wrangler and set the local `APP_ORIGIN` to the frontend origin. Do not put database credentials, session secrets, or R2 access keys in the frontend environment. The existing PostgreSQL API remains the fallback until the Worker API completes upload-intent, import/export, and end-to-end cutover checks.
+For local Worker development, use a local D1/R2 binding through Wrangler and set the local `APP_ORIGIN` to the frontend origin. Do not put database credentials, session secrets, or R2 access keys in the frontend environment. The Cloudflare Worker is the production API path; it stores marketplace records in D1 and design files in R2.
 
-## Seed demo marketplace data
-
-To create synthetic buyer/vendor accounts, a published demo workshop, three printers with MOQ values, three open RFQs, demo quotes, and one demo contact:
-
-```bash
-NODE_ENV=development \
-MARKETPLACE_STORE=prisma \
-DATABASE_URL="your-database-url" \
-pnpm seed:demo
-```
-
-The command is idempotent for the demo records and refuses to run with `NODE_ENV=production`. It prints the demo credentials when complete. Never use these credentials in production.
+There is no demo-data seed command. Development and production dashboards intentionally show empty states until real users create vendor profiles, printers, RFQs, quotes, and orders.
 
 Open `/login`, `/signup`, `/request-quote`, `/dashboard/buyer`, or `/dashboard/owner`.
 

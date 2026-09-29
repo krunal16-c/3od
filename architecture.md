@@ -99,16 +99,18 @@ Worker boundary for asynchronous processing. It is currently a foundation and sh
 
 The web quote page performs an `/auth/me` check before rendering the RFQ form. If the session is missing or expired, the browser is sent to login with a validated relative `next` path, then returned to the requested quote flow after authentication. The session remains an HttpOnly cookie and is never copied into browser storage.
 
+Buyer and printer-owner dashboard routes use the same session check and enforce the required marketplace role before rendering. Dashboard summaries do not invent counts, earnings, jobs, printers, or RFQs: empty states are shown until the API returns records owned by the signed-in account.
+
 ### RFQ and file upload
 
 1. A buyer submits RFQ metadata with an `Idempotency-Key`.
 2. PostgreSQL or D1 enforces one RFQ per buyer/idempotency key.
-3. The active API creates a short-lived upload capability; the Worker path will write through its R2 binding instead of exposing S3 credentials.
-4. The browser uploads the design directly to R2.
-5. The API records the R2 object key as an RFQ file in PostgreSQL.
+3. The browser sends the selected design as multipart form data to the authenticated API Worker.
+4. The Worker validates ownership, extension, content type, and the 25 MB size limit, then writes the object through its private R2 binding.
+5. The API records the R2 object key and file metadata in D1 or PostgreSQL.
 6. Printer owners receive the RFQ through their authorized inbox.
 
-The API never proxies large design files through the application server and never exposes R2 credentials to the browser.
+R2 credentials and bucket bindings never reach the browser. The Worker is the upload boundary so object keys and storage permissions remain server-controlled.
 
 ### Quote lifecycle
 
@@ -160,7 +162,7 @@ pnpm exec prisma migrate deploy --schema packages/domain/prisma/schema.prisma
 - Rate limits protect the API from unauthenticated and abusive traffic.
 - Zod validation rejects malformed and oversized inputs.
 - RFQ, quote, file, and dashboard reads are authorization-checked by role and ownership.
-- Uploads use short-lived presigned URLs and strict file size/type checks.
+- Uploads use authenticated Worker-to-R2 writes and strict file size/type checks.
 - Idempotency prevents duplicate RFQs during retries.
 - Database state transitions prevent invalid marketplace lifecycle changes.
 

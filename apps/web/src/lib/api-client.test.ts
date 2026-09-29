@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getMyRfqs, getCurrentUser } from './api-client';
+import { getMyRfqs, getCurrentUser, uploadRfqFile } from './api-client';
 
 const originalFetch = globalThis.fetch;
 
@@ -26,5 +26,18 @@ describe('dashboard API client', () => {
 
     const response = await getCurrentUser();
     expect(response.user.role).toBe('buyer');
+  });
+
+  it('uploads a design file as multipart form data with credentials', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.credentials).toBe('include');
+      expect(init?.method).toBe('POST');
+      expect(init?.body).toBeInstanceOf(FormData);
+      return new Response(JSON.stringify({ file: { id: 'file-1' } }), { status: 201 });
+    });
+    globalThis.fetch = fetchMock;
+
+    await uploadRfqFile('rfq-1', new File(['solid bracket'], 'bracket.stl', { type: 'model/stl' }));
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/rfqs/rfq-1/files'), expect.objectContaining({ credentials: 'include' }));
   });
 });

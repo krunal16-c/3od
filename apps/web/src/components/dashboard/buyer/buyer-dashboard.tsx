@@ -45,14 +45,9 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
 
 const navItems: { label: string; href: string; icon: IconName; active?: boolean; count?: string }[] = [
   { label: 'Overview', href: '/dashboard/buyer', icon: 'grid', active: true },
-  { label: 'My RFQs', href: '/dashboard/buyer/rfqs', icon: 'file', count: '3' },
-  { label: 'Orders', href: '/dashboard/buyer/orders', icon: 'box', count: '2' },
+  { label: 'My RFQs', href: '/dashboard/buyer/rfqs', icon: 'file' },
+  { label: 'Orders', href: '/dashboard/buyer/orders', icon: 'box' },
   { label: 'Saved designs', href: '/dashboard/buyer/designs', icon: 'heart' },
-];
-
-const rfqs = [
-  { name: 'Desk organiser v2', meta: 'PLA · 4 parts · Due 28 Sep', status: '3 new quotes', price: '₹ 1,280 – ₹ 1,950', tone: 'orange' },
-  { name: 'Enclosure bracket', meta: 'PETG · 12 parts · Due 02 Oct', status: 'Awaiting quotes', price: 'Closes in 2d 8h', tone: 'blue' },
 ];
 
 function initials(name: string) {
@@ -95,7 +90,7 @@ export function BuyerDashboard() {
     void getCurrentUser().then(({ user }) => setAccountName(user.name || user.email)).catch(() => undefined);
   }, []);
   const displayName = accountName.split(/\s+/)[0] || 'there';
-  const visibleRfqs = liveRfqs.length > 0 ? liveRfqs.slice(0, 2).map((rfq, index) => ({ name: rfq.title, meta: `${rfq.material ?? 'Material flexible'} · ${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, status: rfq.state === 'QUOTES_RECEIVED' ? 'Quotes ready' : 'Awaiting quotes', price: rfq.state === 'QUOTES_RECEIVED' ? 'Compare quotes' : 'Open for quotes', tone: index % 2 === 0 ? 'orange' : 'blue' })) : rfqs;
+  const visibleRfqs = liveRfqs.slice(0, 2).map((rfq, index) => ({ name: rfq.title, meta: `${rfq.material ?? 'Material flexible'} · ${rfq.quantity ?? 1} parts · ${rfq.deadline ? `Due ${new Date(rfq.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : 'Date flexible'}`, status: rfq.state === 'QUOTES_RECEIVED' ? 'Quotes ready' : 'Awaiting quotes', price: rfq.state === 'QUOTES_RECEIVED' ? 'Compare quotes' : 'Open for quotes', tone: index % 2 === 0 ? 'orange' : 'blue' }));
   return (
     <div className={styles.dashboard}>
       <aside className={styles.sidebar}><NavContent accountName={accountName} /></aside>
@@ -116,24 +111,24 @@ export function BuyerDashboard() {
           </section>
 
           <section className={styles.stats} aria-label="Workspace summary">
-            <div className={styles.stat}><span className={styles.statIcon}><Icon name="file" size={17} /></span><span><small>Active RFQs</small><strong>2 <i>+1 this month</i></strong></span></div>
-            <div className={styles.stat}><span className={`${styles.statIcon} ${styles.mint}`}><Icon name="box" size={17} /></span><span><small>In production</small><strong>1 <i>On track</i></strong></span></div>
-            <div className={styles.stat}><span className={`${styles.statIcon} ${styles.lilac}`}><Icon name="heart" size={17} /></span><span><small>Saved designs</small><strong>8 <i>+2 this month</i></strong></span></div>
+            <div className={styles.stat}><span className={styles.statIcon}><Icon name="file" size={17} /></span><span><small>Active RFQs</small><strong>{liveRfqs.length}</strong></span></div>
+            <div className={styles.stat}><span className={`${styles.statIcon} ${styles.mint}`}><Icon name="box" size={17} /></span><span><small>Orders</small><strong>—</strong><i>Coming after quote acceptance</i></span></div>
+            <div className={styles.stat}><span className={`${styles.statIcon} ${styles.lilac}`}><Icon name="heart" size={17} /></span><span><small>Saved designs</small><strong>—</strong><i>Not available yet</i></span></div>
           </section>
 
           <div className={styles.grid}>
             <section className={styles.rfqSection} aria-labelledby="rfq-title"><SectionTitle eyebrow="01 / In progress" title="Active RFQs" action={<Link className={styles.textLink} href="/dashboard/buyer/rfqs">View all <Icon name="arrow" size={15} /></Link>} />
-              <div className={styles.rfqList}>{visibleRfqs.map((rfq) => <article className={styles.rfqCard} key={rfq.name}><div className={`${styles.filePreview} ${rfq.tone}`}><Icon name="cube" size={27} /><span>.STL</span></div><div className={styles.rfqDetails}><div className={styles.rfqTop}><h3>{rfq.name}</h3><button className={styles.moreButton} aria-label={`More options for ${rfq.name}`}>•••</button></div><p>{rfq.meta}</p><div className={styles.rfqBottom}><span className={`${styles.pill} ${rfq.tone === 'orange' ? styles.pillOrange : styles.pillBlue}`}><span />{rfq.status}</span><strong>{rfq.price}</strong></div></div></article>)}</div>
+              <div className={styles.rfqList}>{visibleRfqs.length > 0 ? visibleRfqs.map((rfq) => <article className={styles.rfqCard} key={rfq.name}><div className={`${styles.filePreview} ${rfq.tone}`}><Icon name="cube" size={27} /><span>3oD</span></div><div className={styles.rfqDetails}><div className={styles.rfqTop}><h3>{rfq.name}</h3></div><p>{rfq.meta}</p><div className={styles.rfqBottom}><span className={`${styles.pill} ${rfq.tone === 'orange' ? styles.pillOrange : styles.pillBlue}`}><span />{rfq.status}</span><strong>{rfq.price}</strong></div></div></article>) : <p>No RFQs yet. Start a request to see it here.</p>}</div>
             </section>
 
-            <section className={styles.quoteSection} aria-labelledby="quote-title"><SectionTitle eyebrow="02 / Compare" title="Quote comparison" action={<span className={styles.updated}><span />Updated just now</span>} />
-              <article className={styles.quoteCard}><div className={styles.quoteHeader}><div><span className={styles.recommended}><Icon name="spark" size={13} /> Best match</span><h3>Compare your responses</h3><p>Open an RFQ to review vendor quotes</p></div><Link href="/dashboard/buyer/rfqs" className={styles.viewLink}>View RFQs <Icon name="arrow" size={15} /></Link></div><div className={styles.quoteRows}><div className={`${styles.quoteRow} ${styles.bestRow}`}><span className={styles.printerLogo}>P</span><span className={styles.printerInfo}><strong>Printwise Studio</strong><small>Recommended local partner · MOQ 1</small></span><span className={styles.delivery}>Fast</span><strong className={styles.quotePrice}>₹1,280</strong><Link className={styles.selectButton} href="/dashboard/buyer/rfqs">View</Link></div><div className={styles.quoteRow}><span className={`${styles.printerLogo} ${styles.logoBlue}`}>M</span><span className={styles.printerInfo}><strong>MakerSpace 3D</strong><small>Engineering materials · MOQ 5</small></span><span className={styles.delivery}>2–4d</span><strong className={styles.quotePrice}>₹1,450</strong><Link className={styles.outlineButton} href="/dashboard/buyer/rfqs">View</Link></div><div className={styles.quoteRow}><span className={`${styles.printerLogo} ${styles.logoGreen}`}>F</span><span className={styles.printerInfo}><strong>FabLab Chennai</strong><small>Resin detail · MOQ 2</small></span><span className={styles.delivery}>4–6d</span><strong className={styles.quotePrice}>₹1,950</strong><Link className={styles.outlineButton} href="/dashboard/buyer/rfqs">View</Link></div></div></article>
+            <section className={styles.quoteSection} aria-labelledby="quote-title"><SectionTitle eyebrow="02 / Quotes" title="Quotes from print partners" action={<Link href="/dashboard/buyer/rfqs" className={styles.viewLink}>View RFQs <Icon name="arrow" size={15} /></Link>} />
+              <article className={styles.quoteCard}><div className={styles.quoteHeader}><div><span className={styles.recommended}><Icon name="spark" size={13} /> Live marketplace</span><h3>{liveRfqs.some((rfq) => rfq.state === 'QUOTES_RECEIVED') ? 'Quotes are ready to compare' : 'No quotes yet'}</h3><p>Printer owners will respond to your open RFQs here.</p></div></div></article>
             </section>
           </div>
 
           <div className={styles.lowerGrid}>
-            <section aria-labelledby="order-title"><SectionTitle eyebrow="03 / On the move" title="Order progress" action={<Link className={styles.textLink} href="/dashboard/buyer/orders">All orders <Icon name="arrow" size={15} /></Link>} /><article className={styles.orderCard}><div className={styles.orderTop}><div><span className={styles.orderNumber}>ORDER #3OD-1048</span><h3>Phone stand — batch of 4</h3></div><span className={styles.pillMint}><span />In production</span></div><div className={styles.timeline}><div className={`${styles.timelineStep} ${styles.done}`}><span>✓</span><small>Order placed<em>18 Sep</em></small></div><div className={`${styles.timelineStep} ${styles.done}`}><span>✓</span><small>Design approved<em>19 Sep</em></small></div><div className={`${styles.timelineStep} ${styles.current}`}><span>3</span><small>Printing<em>Est. 25 Sep</em></small></div><div className={styles.timelineStep}><span>4</span><small>Delivered<em>Est. 27 Sep</em></small></div></div><div className={styles.orderFooter}><span><Icon name="box" size={15} /> Printwise Studio · Bengaluru</span><Link href="/dashboard/buyer/orders">Track order <Icon name="arrow" size={14} /></Link></div></article></section>
-            <section aria-labelledby="saved-title"><SectionTitle eyebrow="04 / Your library" title="Saved designs" action={<Link className={styles.textLink} href="/dashboard/buyer/designs">Library <Icon name="arrow" size={15} /></Link>} /><div className={styles.designCard}><div className={styles.designThumbs}><div className={`${styles.thumb} ${styles.thumbOne}`}><span /></div><div className={`${styles.thumb} ${styles.thumbTwo}`}><span /></div><div className={`${styles.thumb} ${styles.thumbThree}`}><span /></div></div><div className={styles.designInfo}><div><h3>8 designs ready to print</h3><p>Keep your best ideas close. Start an RFQ from any saved design.</p></div><Link className={styles.smallButton} href="/dashboard/buyer/designs">Browse designs <Icon name="arrow" size={14} /></Link></div></div></section>
+            <section aria-labelledby="order-title"><SectionTitle eyebrow="03 / Orders" title="Order progress" action={<Link className={styles.textLink} href="/dashboard/buyer/orders">View orders <Icon name="arrow" size={15} /></Link>} /><article className={styles.orderCard}><h3>No orders yet</h3><p>Orders will appear here after you accept a printer owner’s quote.</p></article></section>
+            <section aria-labelledby="saved-title"><SectionTitle eyebrow="04 / Library" title="Saved designs" action={<Link className={styles.textLink} href="/dashboard/buyer/designs">Open library <Icon name="arrow" size={15} /></Link>} /><div className={styles.designCard}><div className={styles.designInfo}><div><h3>Your saved designs will appear here.</h3><p>Upload a design when you start your next RFQ.</p></div><Link className={styles.smallButton} href="/request-quote">Upload a design <Icon name="arrow" size={14} /></Link></div></div></section>
           </div>
 
           <section className={styles.prompt}><div className={styles.promptIcon}><Icon name="spark" size={21} /></div><div><p className={styles.eyebrow}>Not sure where to start?</p><h2>Have a design in mind?</h2><p>Upload a file, tell us what you need, and let verified print partners do the rest.</p></div><Link className={styles.promptButton} href="/request-quote">Get a quote <Icon name="arrow" size={15} /></Link></section>

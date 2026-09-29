@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Earnings', href: '/dashboard/owner/earnings', icon: 'wallet' as const },
 ];
 
-export function OwnerSidebar({ open, onClose, ownerName }: { open: boolean; onClose: () => void; ownerName: string }) {
+export function OwnerSidebar({ open, onClose, ownerName, rfqCount }: { open: boolean; onClose: () => void; ownerName: string; rfqCount: number }) {
   const initials = ownerName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || '3D';
   return (
     <>
@@ -20,7 +20,7 @@ export function OwnerSidebar({ open, onClose, ownerName }: { open: boolean; onCl
         <div className="od-workspace-chip"><span className="od-avatar od-avatar-small">{initials}</span><span><strong>{ownerName}</strong><small>Printer owner</small></span><Icon name="chevron" size={14} /></div>
         <p className="od-nav-label">Workspace</p>
         <nav className="od-nav" aria-label="Owner workspace navigation">
-          {navItems.map((item) => <Link className={`od-nav-link ${item.active ? 'od-nav-active' : ''}`} href={item.href} key={item.label} onClick={onClose}><Icon name={item.icon} size={18} /><span>{item.label}</span>{item.badge && <b>{item.badge}</b>}</Link>)}
+          {navItems.map((item) => <Link className={`od-nav-link ${item.active ? 'od-nav-active' : ''}`} href={item.href} key={item.label} onClick={onClose}><Icon name={item.icon} size={18} /><span>{item.label}</span>{item.label === 'RFQ inbox' && rfqCount > 0 && <b>{rfqCount}</b>}</Link>)}
         </nav>
         <div className="od-sidebar-bottom">
           <Link className="od-nav-link" href="/dashboard/owner/settings" onClick={onClose}><Icon name="settings" size={18} /><span>Settings</span></Link>

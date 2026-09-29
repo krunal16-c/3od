@@ -10,7 +10,6 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
-    "seed:demo": "pnpm --filter @3od/api seed:demo",
     "test:e2e": "pnpm build && playwright test",
     "typecheck": "turbo typecheck",
     "format": "prettier --write ."

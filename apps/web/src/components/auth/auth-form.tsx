@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiClientError, apiMode, dashboardPathForUser, login, signup } from '../../lib/api-client';
+import { ApiClientError, dashboardPathForUser, login, signup } from '../../lib/api-client';
 
 type Role = 'buyer' | 'printer';
 
@@ -55,30 +55,13 @@ function errorMessage(error: unknown) {
 export function SignupForm({ initialRole = 'buyer' }: { initialRole?: Role }) {
   const router = useRouter();
   const [role, setRole] = useState<Role>(initialRole);
-  const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  if (submitted) {
-    return (
-      <section style={styles.panel} aria-live="polite">
-        <p className="eyebrow">Account created</p>
-        <h2 style={{ margin: '16px 0' }}>You’re ready to get quotes</h2>
-        <p className="lead">Your demo account is set up as a {role === 'buyer' ? 'buyer' : 'printer owner'}.</p>
-        {role === 'buyer' ? <Link className="button" href="/request-quote">Request a quote <span aria-hidden="true">↗</span></Link> : <Link className="button" href="/dashboard/owner">Go to printer dashboard <span aria-hidden="true">↗</span></Link>}
-      </section>
-    );
-  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setErrors([]);
-
-    if (apiMode === 'demo') {
-      setSubmitted(true);
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -130,11 +113,6 @@ export function LoginForm() {
     try {
       const requestedPath = new URLSearchParams(window.location.search).get('next');
       const redirectPath = requestedPath?.startsWith('/') ? requestedPath : undefined;
-      if (apiMode === 'demo') {
-        router.push(redirectPath ?? (role === 'buyer' ? '/dashboard/buyer' : '/dashboard/owner'));
-        return;
-      }
-
       const { user } = await login({
         email: String(form.get('email') ?? '').trim(),
         password: String(form.get('password') ?? ''),
@@ -150,7 +128,7 @@ export function LoginForm() {
   return (
     <form style={styles.panel} onSubmit={submit} noValidate>
       <RoleSelector role={role} onChange={setRole} />
-      <p style={{ ...styles.helper, marginTop: 14 }}><strong>{role === 'buyer' ? 'Buyer' : 'Printer owner'}</strong> {apiMode === 'demo' ? 'demo login selected.' : 'account selected.'}</p>
+      <p style={{ ...styles.helper, marginTop: 14 }}><strong>{role === 'buyer' ? 'Buyer' : 'Printer owner'}</strong> account selected.</p>
       {errors.length > 0 && <div role="alert" style={styles.error}>{errors.map((error) => <div key={error}>{error}</div>)}</div>}
       <div style={styles.fields}>
         <label style={styles.label}>Email<input style={styles.input} name="email" type="email" aria-label="Email" /></label>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ApiClientError, apiMode, createRfq, createUploadIntent, uploadDesign } from '../../lib/api-client';
+import { ApiClientError, createRfq, uploadRfqFile } from '../../lib/api-client';
 
 const fieldStyle = { width: '100%', border: '1px solid var(--line)', background: 'var(--paper)', padding: '13px 14px', color: 'var(--ink)', font: 'inherit' };
 const labelStyle = { display: 'grid', gap: 8, fontSize: 14, fontWeight: 600 };
@@ -39,15 +39,10 @@ export function RfqForm() {
     const title = String(form.get('project') ?? '').trim();
     const quantity = Number(form.get('quantity'));
     if (!title) { setError('Add a project title so printers know what they are quoting.'); return; }
-    if (!form.get('file')) { setError('Attach a 3D design file to continue.'); return; }
+    const file = form.get('file');
+    if (!(file instanceof File) || file.size === 0) { setError('Attach a 3D design file to continue.'); return; }
     if (quantity < 1) { setError('Quantity must be at least 1.'); return; }
     setError('');
-
-    if (apiMode === 'demo') {
-      setRfqId(`RFQ-3OD-${Math.floor(1000 + Math.random() * 9000)}`);
-      setSubmitted(true);
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -59,10 +54,7 @@ export function RfqForm() {
         neededBy: String(form.get('deadline') ?? '').trim() || undefined,
         notes: String(form.get('notes') ?? '').trim() || undefined,
       }, idempotencyKey());
-      const file = form.get('file');
-      if (!(file instanceof File)) throw new Error('Please attach a valid design file.');
-      const intent = await createUploadIntent(rfq.id, file);
-      await uploadDesign(intent.uploadUrl, file);
+      await uploadRfqFile(rfq.id, file);
       setRfqId(rfq.id);
       setSubmitted(true);
     } catch (error) {
@@ -89,7 +81,7 @@ export function RfqForm() {
         {error && <p role="alert" style={{ color: 'var(--orange-dark)', fontSize: 13, lineHeight: 1.5, margin: 0 }}>{error}</p>}
         <button className="button" type="submit" disabled={submitting}>{submitting ? 'Sending request…' : 'Send request for quote'} <span aria-hidden="true">↗</span></button>
       </div>
-      <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.5, margin: '22px 0 0' }}>{apiMode === 'demo' ? 'Demo flow only — your file stays in this browser and is not uploaded.' : 'Your design file is uploaded directly to protected 3oD storage.'}</p>
+      <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.5, margin: '22px 0 0' }}>Your design file is uploaded directly to protected 3oD storage.</p>
     </form>
   );
 }
