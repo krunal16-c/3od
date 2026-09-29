@@ -77,6 +77,11 @@ export function createApp(): ApiApp {
   app.onError((error, context) => {
     const statusCode = isHttpError(error) ? error.statusCode : 500;
     const code = isHttpError(error) ? error.code : 'INTERNAL_ERROR';
+    console.error(JSON.stringify({
+      requestId: context.get('requestId'),
+      code,
+      error: error instanceof Error ? error.message : String(error),
+    }));
     const message = statusCode >= 500 ? 'Unexpected server error' : error.message;
 
     return context.json(
