@@ -31,12 +31,13 @@ export function Hero() {
           <Button href="/join-as-supplier" secondary>{siteCopy.supplier.cta}</Button>
         </div>
       </div>
-      <div className="hero-art" aria-label="Abstract 3D printed part illustration" role="img">
-        <div className="art-grid" />
-        <div className="part part-one" />
-        <div className="part part-two" />
-        <div className="part part-three" />
-        <span className="art-label">FILE → PART</span>
+      <div className="hero-art" aria-label="Digital manufacturing workshop with a 3D printer" role="img">
+        <div className="hero-art-shade" />
+        <div className="hero-art-copy">
+          <span className="art-label">DIGITAL WORKSHOP / INDIA</span>
+          <strong>From CAD file<br />to useful part.</strong>
+          <div className="hero-art-tags"><span>3D PRINTING</span><span>CNC NEXT</span><span>LASER NEXT</span></div>
+        </div>
       </div>
     </section>
   );
