@@ -11,6 +11,8 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "test:e2e": "pnpm build && playwright test",
+    "build:web:cloudflare": "pnpm --filter @3od/web exec opennextjs-cloudflare build",
+    "deploy:web:cloudflare": "pnpm --filter @3od/web exec opennextjs-cloudflare deploy",
     "typecheck": "turbo typecheck",
     "format": "prettier --write ."
   },

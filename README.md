@@ -91,11 +91,14 @@ Deploy from the repository root after authentication:
 pnpm --filter @3od/web deploy:cloudflare
 ```
 
-For a connected Cloudflare Workers build, use the repository root as the working directory and:
+For a connected Cloudflare Workers build, use the repository root as the working directory and configure the build and deploy commands separately. Do not use `npx wrangler deploy` from the repository root because Wrangler sees multiple Cloudflare projects in the monorepo:
 
 ```text
-Build command: pnpm install --frozen-lockfile && pnpm --filter @3od/web deploy:cloudflare
+Build command: pnpm install --frozen-lockfile && pnpm build:web:cloudflare
+Deploy command: pnpm deploy:web:cloudflare
 ```
+
+The equivalent local commands are `pnpm build:web:cloudflare` followed by `pnpm deploy:web:cloudflare`. Both commands target `apps/web` through the workspace filter, so the frontend OpenNext Worker is selected instead of the API Worker.
 
 The Worker serves the Next.js frontend and calls the separately deployed API over HTTPS. Keep `DATABASE_URL`, `SESSION_SECRET`, R2 access keys, and other private values on the API service; never add them to the frontend build. After choosing a production frontend domain, add it to the API `APP_ORIGIN` and `WEB_ORIGINS` values and restart the API so browser requests pass CORS checks.
 
