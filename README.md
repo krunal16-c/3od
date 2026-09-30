@@ -40,6 +40,8 @@ Terminal 1 — API:
 pnpm --filter @3od/api dev
 ```
 
+The API automatically generates the Prisma client before starting. If macOS blocks Prisma's local engine cache after a fresh install, allow the Prisma cache folder and run `pnpm exec prisma generate --schema packages/domain/prisma/schema.prisma` once from the repository root.
+
 The API runs at `http://localhost:4000`.
 
 Terminal 2 — web app:
