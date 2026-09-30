@@ -11,6 +11,7 @@ export function Header() {
         <Link href="/for-buyers">{siteCopy.nav.buyers}</Link>
         <Link href="/for-printer-owners">{siteCopy.nav.suppliers}</Link>
         <Link href="/how-it-works">{siteCopy.nav.howItWorks}</Link>
+        <Link href="/contact">Contact</Link>
         <Link href="/login">Sign in</Link>
       </nav>
       <Link className="nav-cta" href="/request-quote">{siteCopy.nav.quote} <span aria-hidden="true">↗</span></Link>

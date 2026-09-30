@@ -82,6 +82,7 @@ export default function HomePage() {
             <em>{siteCopy.sections.finalAccent}</em>
           </h2>
           <Button href="/request-quote">{siteCopy.buyer.cta}</Button>
+          <Link className="text-link contact-cta-link" href="/contact">Have a partnership idea? Contact us →</Link>
         </section>
       </main>
       <Footer />

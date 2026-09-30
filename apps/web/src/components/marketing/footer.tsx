@@ -15,6 +15,7 @@ export function Footer() {
         <Link href="/for-printer-owners">{siteCopy.nav.suppliers}</Link>
         <Link href="/how-it-works">{siteCopy.nav.howItWorks}</Link>
         <Link href="/blog">Guides</Link>
+        <Link href="/contact">Contact</Link>
       </div>
       <small>{siteCopy.footer.copyright}</small>
     </footer>
