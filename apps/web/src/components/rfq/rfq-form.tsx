@@ -27,7 +27,7 @@ export function RfqForm() {
       <section style={{ background: 'var(--white)', border: '1px solid var(--line)', padding: 28, maxWidth: 760 }} aria-live="polite">
         <p className="eyebrow">Request received</p>
         <h2 style={{ margin: '16px 0' }}>Your quote request is on its way</h2>
-        <p className="lead">We’ll show matching printer owners your brief. Your reference is <strong>{rfqId}</strong>.</p>
+        <p className="lead">We’ll show matching manufacturing partners your brief. Your reference is <strong>{rfqId}</strong>.</p>
         <Link className="button" href="/">Back to 3oD <span aria-hidden="true">↗</span></Link>
       </section>
     );

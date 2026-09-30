@@ -4,7 +4,7 @@ import { Header } from '../../components/marketing/hero';
 import { SignupForm } from '../../components/auth/auth-form';
 
 export const metadata: Metadata = {
-  title: 'Join as a Printer Owner',
+  title: 'Join as a Manufacturing Partner',
   description: 'Turn your idle 3D printer into income with 3oD.',
   alternates: { canonical: '/join-as-supplier' },
 };
@@ -14,8 +14,8 @@ export default function JoinAsSupplierPage() {
     <>
       <Header />
       <main className="simple-page shell">
-        <p className="eyebrow">For printer owners</p>
-        <h1>Turn your idle printer into income.</h1>
+        <p className="eyebrow">For manufacturing partners</p>
+        <h1>Turn idle machine capacity into income.</h1>
         <p className="lead">
           Create a printer-owner account, set your capabilities, and start receiving relevant
           requests from buyers across India.

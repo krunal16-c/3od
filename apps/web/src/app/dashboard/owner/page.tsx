@@ -4,7 +4,7 @@ import { AuthGate } from '../../../components/auth/auth-gate';
 
 export const metadata: Metadata = {
   title: 'Owner workspace',
-  description: 'Manage your 3D printing work, quotes, and earnings on 3oD.',
+  description: 'Manage your manufacturing work, quotes, and machine capacity on 3oD.',
 };
 
 export default function OwnerDashboardPage() {

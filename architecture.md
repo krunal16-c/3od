@@ -8,7 +8,9 @@
 - Printer owners discover matching RFQs, provide price and lead time, and fulfil accepted work.
 - 3oD coordinates identity, file access, quote state, notifications, payments, and audit history.
 
-CNC machining is a future capability. The initial domain is designed around manufacturing requests so CNC-specific processes can be added without changing the buyer/printer-owner identity model.
+CNC machining, laser cutting, and fabrication are future capabilities. The public site positions 3oD as a broader digital manufacturing marketplace, but the live RFQ workflow and current D1 schema remain centered on 3D printing and printer-owner capabilities. Future process-specific fields should be added behind the shared manufacturing-request model rather than by duplicating buyer or partner identity flows.
+
+The public `/blog` hub is a statically generated content surface for buyer education and organic discovery. Each guide has a canonical URL, Open Graph metadata, Article JSON-LD, and a sitemap entry. Blog content must remain people-first and accurately describe which processes are live versus planned.
 
 ## Runtime components
 

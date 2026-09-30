@@ -12,6 +12,21 @@ export default function HomePage() {
       <main>
         <Hero />
         <AudienceCards />
+        <section className="section shell service-section">
+          <div className="section-heading">
+            <p className="eyebrow">One network, more ways to make</p>
+            <h2>Choose the process your part needs.</h2>
+          </div>
+          <div className="service-grid">
+            {siteCopy.serviceCategories.map(([name, description, status]) => (
+              <article className="service-card" key={name}>
+                <span className="service-status">{status}</span>
+                <h3>{name}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
         <section className="promise-section shell">
           <p className="eyebrow">{siteCopy.sections.promiseEyebrow}</p>
           <h2>{siteCopy.buyer.promise}</h2>

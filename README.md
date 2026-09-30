@@ -1,6 +1,6 @@
 # 3oD by Zester Product Studio
 
-3oD by Zester Product Studio is an India-wide two-sided marketplace for custom 3D printing. Buyers upload a design and request quotes; printer owners discover suitable requests, submit pricing and lead times, and fulfil accepted work.
+3oD by Zester Product Studio is an India-wide digital manufacturing marketplace, starting with custom 3D printing. Buyers upload a CAD design and request quotes; manufacturing partners discover suitable requests, submit pricing and lead times, and fulfil accepted work. CNC machining, laser cutting, and fabrication are the next planned categories.
 
 The repository is a pnpm monorepo containing the Next.js web app, the existing NestJS API, the Cloudflare Worker API migration, shared contracts/domain packages, and a worker boundary for asynchronous jobs.
 
@@ -125,6 +125,8 @@ For email verification, add `RESEND_API_KEY` as a Worker secret and set `MAIL_FR
 For local Worker development, use a local D1/R2 binding through Wrangler and set the local `APP_ORIGIN` to the frontend origin. Do not put database credentials, session secrets, or R2 access keys in the frontend environment. The Cloudflare Worker is the production API path; it stores marketplace records in D1 and design files in R2.
 
 There is no demo-data seed command. Development and production dashboards intentionally show empty states until real users create vendor profiles, printers, RFQs, quotes, and orders.
+
+The public site includes a `/blog` guide hub covering CAD preparation, 3D printing, CNC machining, and quote comparison. The current live RFQ workflow remains focused on 3D printing; future processes are clearly labelled as upcoming rather than presented as available services.
 
 Open `/login`, `/signup`, `/request-quote`, `/dashboard/buyer`, or `/dashboard/owner`.
 
