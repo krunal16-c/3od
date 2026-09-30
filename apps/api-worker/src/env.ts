@@ -4,6 +4,8 @@ export interface WorkerEnv {
   APP_ORIGIN?: string;
   NODE_ENV?: string;
   SESSION_SECRET?: string;
+  RESEND_API_KEY?: string;
+  MAIL_FROM?: string;
   DB?: D1Database;
   FILES?: R2Bucket;
 }
@@ -12,6 +14,8 @@ export interface ValidatedWorkerEnv {
   APP_ORIGIN: string;
   NODE_ENV: NodeEnvironment;
   SESSION_SECRET: string;
+  RESEND_API_KEY?: string;
+  MAIL_FROM?: string;
   DB: D1Database;
   FILES: R2Bucket;
 }
@@ -53,6 +57,8 @@ export function validateEnvironment(environment: WorkerEnv): ValidatedWorkerEnv 
     APP_ORIGIN: environment.APP_ORIGIN,
     NODE_ENV: nodeEnvironment,
     SESSION_SECRET: environment.SESSION_SECRET,
+    RESEND_API_KEY: environment.RESEND_API_KEY,
+    MAIL_FROM: environment.MAIL_FROM,
     DB: environment.DB,
     FILES: environment.FILES,
   };

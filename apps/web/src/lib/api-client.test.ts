@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getMyRfqs, getCurrentUser, uploadRfqFile } from './api-client';
+import { createQuote, getMyRfqs, getCurrentUser, uploadRfqFile } from './api-client';
 
 const originalFetch = globalThis.fetch;
 
@@ -25,7 +25,7 @@ describe('dashboard API client', () => {
     globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ user: { id: 'user-1', email: 'buyer@example.com', name: 'Buyer', role: 'buyer' } }), { status: 200 }));
 
     const response = await getCurrentUser();
-    expect(response.user.role).toBe('buyer');
+    expect(response.user?.role).toBe('buyer');
   });
 
   it('uploads a design file as multipart form data with credentials', async () => {
@@ -39,5 +39,17 @@ describe('dashboard API client', () => {
 
     await uploadRfqFile('rfq-1', new File(['solid bracket'], 'bracket.stl', { type: 'model/stl' }));
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/rfqs/rfq-1/files'), expect.objectContaining({ credentials: 'include' }));
+  });
+
+  it('submits a vendor quote for an RFQ', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ quote: { id: 'quote-1' } }), { status: 201 }));
+    globalThis.fetch = fetchMock;
+
+    await createQuote('rfq-1', { amountPaise: 185000, leadTimeDays: 4, notes: 'PETG, ready in four days' });
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/rfqs/rfq-1/quotes'), expect.objectContaining({ method: 'POST', credentials: 'include' }));
+    const calls = fetchMock.mock.calls as unknown as Array<[RequestInfo | URL, RequestInit?]>;
+    const request = calls[0]?.[1];
+    expect(JSON.parse(String(request?.body))).toMatchObject({ rfqId: 'rfq-1', amountPaise: 185000, leadTimeDays: 4 });
   });
 });

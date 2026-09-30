@@ -37,6 +37,7 @@ export interface MarketplaceRepository {
   findUserByEmail(email: string): Promise<User | null>;
   findUserById(id: string): Promise<User | null>;
   createUser(input: CreateUserInput): Promise<User>;
+  markUserEmailVerified(id: string): Promise<User | null>;
   findSessionByTokenHash(tokenHash: string): Promise<Session | null>;
   createSession(input: CreateSessionInput): Promise<Session>;
   deleteSession(id: string): Promise<boolean>;

@@ -11,6 +11,7 @@ export interface User {
   passwordHash: string;
   role: UserRole;
   displayName: string | null;
+  emailVerifiedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

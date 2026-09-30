@@ -108,6 +108,8 @@ The Cloudflare API foundation lives in `apps/api-worker`. It uses Hono, D1 for r
 - Vendor profiles, public storefronts, printers, MOQ, and buyer contacts
 - Buyer RFQs with idempotency keys
 - Vendor quotes and buyer quote acceptance
+- Vendor RFQ review with price, lead-time, and notes submission
+- Account-existence guidance and optional email verification through Resend
 
 Create the D1 database and R2 bucket in Cloudflare, then replace the placeholder D1 `database_id` in `apps/api-worker/wrangler.jsonc`. Configure the production-only secrets through Wrangler or the Cloudflare dashboard:
 
@@ -117,6 +119,8 @@ pnpm exec wrangler secret put SESSION_SECRET
 pnpm exec wrangler d1 migrations apply 3od-production --remote
 pnpm exec wrangler deploy
 ```
+
+For email verification, add `RESEND_API_KEY` as a Worker secret and set `MAIL_FROM` to a verified sender address. When both are configured, new accounts must verify their email before login; without them, local/development signup remains usable without email delivery.
 
 For local Worker development, use a local D1/R2 binding through Wrangler and set the local `APP_ORIGIN` to the frontend origin. Do not put database credentials, session secrets, or R2 access keys in the frontend environment. The Cloudflare Worker is the production API path; it stores marketplace records in D1 and design files in R2.
 

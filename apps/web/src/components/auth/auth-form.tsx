@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiClientError, dashboardPathForUser, login, signup } from '../../lib/api-client';
+import { ApiClientError, dashboardPathForUser, login, resendVerification, signup } from '../../lib/api-client';
 
 type Role = 'buyer' | 'printer';
 
@@ -24,7 +24,7 @@ function RoleSelector({ role, onChange }: { role: Role; onChange: (role: Role) =
   return (
     <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
       <legend style={{ fontWeight: 600, marginBottom: 10 }}>I’m here as a…</legend>
-      <div style={styles.roleGrid}>
+      <div className="auth-role-grid" style={{ ...styles.roleGrid, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
         {[
           ['buyer', 'Buyer', 'I need something printed.'],
           ['printer', 'Printer owner', 'I want to earn from my printer.'],
@@ -71,6 +71,10 @@ export function SignupForm({ initialRole = 'buyer' }: { initialRole?: Role }) {
         password: String(form.get('password') ?? ''),
         role: role === 'printer' ? 'printer_owner' : 'buyer',
       });
+      if (!user) {
+        setErrors(['Account created. Check your email for a verification link before logging in.']);
+        return;
+      }
       router.push(dashboardPathForUser(user));
     } catch (error) {
       setErrors([errorMessage(error)]);
@@ -117,8 +121,13 @@ export function LoginForm() {
         email: String(form.get('email') ?? '').trim(),
         password: String(form.get('password') ?? ''),
       });
-      router.push(redirectPath ?? dashboardPathForUser(user));
+      if (user) router.push(redirectPath ?? dashboardPathForUser(user));
     } catch (error) {
+      if (error instanceof ApiClientError && error.code === 'ACCOUNT_NOT_FOUND') {
+        const email = String(form.get('email') ?? '').trim();
+        router.push(`/signup?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setErrors([errorMessage(error)]);
     } finally {
       setSubmitting(false);
@@ -135,6 +144,7 @@ export function LoginForm() {
         <label style={styles.label}>Password<input style={styles.input} name="password" type="password" aria-label="Password" /></label>
         <button className="button" type="submit" disabled={submitting}>{submitting ? 'Logging in…' : 'Log in'} <span aria-hidden="true">↗</span></button>
       </div>
+      {errors.some((error) => error.includes('Verify')) && <button type="button" className="button button-secondary" onClick={async () => { const email = String((document.querySelector('input[name="email"]') as HTMLInputElement)?.value ?? '').trim(); await resendVerification(email); setErrors(['If that account needs verification, a new link has been sent.']); }}>Resend verification link</button>}
       <p style={styles.helper}>New to 3oD? <Link href="/signup" style={{ color: 'var(--orange-dark)', textDecoration: 'underline' }}>Create an account</Link></p>
     </form>
   );

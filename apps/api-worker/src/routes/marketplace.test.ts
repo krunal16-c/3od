@@ -15,6 +15,7 @@ class TestD1 implements D1DatabaseLike {
 
   constructor() {
     this.database.exec(readFileSync(new URL('../../migrations/0001_marketplace.sql', import.meta.url), 'utf8'));
+    this.database.exec(readFileSync(new URL('../../migrations/0002_email_verification.sql', import.meta.url), 'utf8'));
   }
 
   prepare(query: string): D1PreparedStatementLike {

@@ -29,6 +29,7 @@ export type CreateRfqInput = {
 };
 
 export type AuthResponse = { user: ApiUser };
+export type SignupResponse = { user?: ApiUser; verificationRequired?: boolean; message?: string };
 export type CreateRfqResponse = { rfq: { id: string } };
 export type UploadIntentResponse = { uploadUrl: string; key: string; expiresInSeconds: number };
 export type VendorProfile = { id: string; slug: string; businessName: string; bio?: string | null; city?: string | null; state?: string | null; serviceAreas: string[]; isPublished: boolean };
@@ -100,11 +101,19 @@ async function request<T>(path: string, init: { method: string; body?: unknown; 
 }
 
 export function signup(input: SignupInput) {
-  return request<AuthResponse>('/auth/signup', { method: 'POST', body: input });
+  return request<SignupResponse>('/auth/signup', { method: 'POST', body: input });
 }
 
 export function login(input: LoginInput) {
   return request<AuthResponse>('/auth/login', { method: 'POST', body: input });
+}
+
+export function resendVerification(email: string) {
+  return request<{ message: string }>('/auth/resend-verification', { method: 'POST', body: { email } });
+}
+
+export function verifyEmail(token: string) {
+  return request<{ message: string }>(`/auth/verify?token=${encodeURIComponent(token)}`, { method: 'GET' });
 }
 
 export function createRfq(input: CreateRfqInput, idempotencyKey: string) {
@@ -166,5 +175,8 @@ export function logout() { return request<void>('/auth/logout', { method: 'POST'
 export function getMyRfqs() { return request<{ rfqs: RfqRecord[] }>('/rfqs/mine', { method: 'GET' }); }
 export function getOpenRfqs() { return request<{ rfqs: RfqRecord[] }>('/rfqs/inbox', { method: 'GET' }); }
 export function getRfqQuotes(rfqId: string) { return request<{ quotes: QuoteRecord[] }>(`/rfqs/${encodeURIComponent(rfqId)}/quotes`, { method: 'GET' }); }
+export function createQuote(rfqId: string, input: { amountPaise: number; leadTimeDays: number; notes?: string }) {
+  return request<{ quote: QuoteRecord }>(`/rfqs/${encodeURIComponent(rfqId)}/quotes`, { method: 'POST', body: { ...input, rfqId } });
+}
 export function getMyPrinters() { return request<{ printers: PrinterListing[] }>('/vendor/printers', { method: 'GET' }); }
 export function getVendorContacts() { return request<{ contacts: VendorContact[] }>('/vendor/contacts', { method: 'GET' }); }

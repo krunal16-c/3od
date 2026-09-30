@@ -47,7 +47,7 @@ function rowTo<T>(row: Row): T {
 }
 
 function userFromRow(row: Row): User {
-  return { id: String(row.id), email: String(row.email), passwordHash: String(row.password_hash), role: row.role as User['role'], displayName: row.display_name === null ? null : String(row.display_name), createdAt: decodeDate(row.created_at), updatedAt: decodeDate(row.updated_at) };
+  return { id: String(row.id), email: String(row.email), passwordHash: String(row.password_hash), role: row.role as User['role'], displayName: row.display_name === null ? null : String(row.display_name), emailVerifiedAt: row.email_verified_at === null || row.email_verified_at === undefined ? null : decodeDate(row.email_verified_at), createdAt: decodeDate(row.created_at), updatedAt: decodeDate(row.updated_at) };
 }
 
 function sessionFromRow(row: Row): Session {
@@ -87,7 +87,8 @@ export class D1MarketplaceRepository implements MarketplaceRepository {
 
   async findUserByEmail(email: string) { const statement = this.db.prepare('SELECT * FROM users WHERE email = ? LIMIT 1').bind(email.trim().toLowerCase()); const row = await statement.first<Row>(); return row ? userFromRow(row) : null; }
   async findUserById(userId: string) { const row = await this.db.prepare('SELECT * FROM users WHERE id = ? LIMIT 1').bind(userId).first<Row>(); return row ? userFromRow(row) : null; }
-  async createUser(input: CreateUserInput) { const timestamp = now(); const value: User = { ...input, id: id('user'), createdAt: timestamp, updatedAt: timestamp }; await run(this.db.prepare('INSERT INTO users (id, email, password_hash, role, display_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(value.id, value.email.trim().toLowerCase(), value.passwordHash, value.role, value.displayName, encodeDate(timestamp), encodeDate(timestamp))); return value; }
+  async createUser(input: CreateUserInput) { const timestamp = now(); const value: User = { ...input, id: id('user'), emailVerifiedAt: input.emailVerifiedAt ?? null, createdAt: timestamp, updatedAt: timestamp }; await run(this.db.prepare('INSERT INTO users (id, email, password_hash, role, display_name, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(value.id, value.email.trim().toLowerCase(), value.passwordHash, value.role, value.displayName, value.emailVerifiedAt ? encodeDate(value.emailVerifiedAt) : null, encodeDate(timestamp), encodeDate(timestamp))); return value; }
+  async markUserEmailVerified(userId: string) { const timestamp = now(); await run(this.db.prepare('UPDATE users SET email_verified_at = ?, updated_at = ? WHERE id = ?').bind(encodeDate(timestamp), encodeDate(timestamp), userId)); return this.findUserById(userId); }
 
   async findSessionByTokenHash(tokenHash: string) { const row = await this.db.prepare('SELECT * FROM sessions WHERE token_hash = ? AND expires_at > ? LIMIT 1').bind(tokenHash, encodeDate(now())).first<Row>(); return row ? sessionFromRow(row) : null; }
   async createSession(input: CreateSessionInput) { const timestamp = now(); const value: Session = { ...input, id: id('session'), createdAt: timestamp, updatedAt: timestamp }; await run(this.db.prepare('INSERT INTO sessions (id, user_id, token_hash, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').bind(value.id, value.userId, value.tokenHash, encodeDate(value.expiresAt), encodeDate(timestamp), encodeDate(timestamp))); return value; }

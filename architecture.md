@@ -101,6 +101,8 @@ The web quote page performs an `/auth/me` check before rendering the RFQ form. I
 
 Buyer and printer-owner dashboard routes use the same session check and enforce the required marketplace role before rendering. Dashboard summaries do not invent counts, earnings, jobs, printers, or RFQs: empty states are shown until the API returns records owned by the signed-in account.
 
+Login returns `ACCOUNT_NOT_FOUND` for an unknown email so the web client can send the visitor to account creation. Email verification uses signed, expiring links delivered through Resend when `RESEND_API_KEY` and `MAIL_FROM` are configured. Verification is stored in `users.email_verified_at`; delivery configuration remains server-side.
+
 ### RFQ and file upload
 
 1. A buyer submits RFQ metadata with an `Idempotency-Key`.
@@ -109,6 +111,7 @@ Buyer and printer-owner dashboard routes use the same session check and enforce 
 4. The Worker validates ownership, extension, content type, and the 25 MB size limit, then writes the object through its private R2 binding.
 5. The API records the R2 object key and file metadata in D1 or PostgreSQL.
 6. Printer owners receive the RFQ through their authorized inbox.
+7. Printer owners can review an open RFQ in the dashboard and submit a quote with INR amount, lead time, and notes.
 
 R2 credentials and bucket bindings never reach the browser. The Worker is the upload boundary so object keys and storage permissions remain server-controlled.
 

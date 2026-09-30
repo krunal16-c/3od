@@ -15,6 +15,7 @@ class TestD1 implements D1DatabaseLike {
 
   constructor() {
     this.database.exec(readFileSync(new URL('../../migrations/0001_marketplace.sql', import.meta.url), 'utf8'));
+    this.database.exec(readFileSync(new URL('../../migrations/0002_email_verification.sql', import.meta.url), 'utf8'));
   }
 
   prepare(query: string): D1PreparedStatementLike {
@@ -133,6 +134,17 @@ describe('Worker authentication routes', () => {
     expect(logout.status).toBe(204);
     const me = await app.request('/auth/me', { headers: { Origin: origin, Cookie: sessionCookie } }, environment(db));
     expect(me.status).toBe(401);
+  });
+
+  it('returns a distinct account-not-found error for an unknown login email', async () => {
+    const response = await createApp().request('/auth/login', {
+      method: 'POST',
+      headers: { Origin: origin, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'missing@example.com', password: 'StrongPassword123!' }),
+    }, environment());
+
+    expect(response.status).toBe(404);
+    expect(await body(response)).toMatchObject({ code: 'ACCOUNT_NOT_FOUND' });
   });
 
   it('requires a valid session for /auth/me', async () => {

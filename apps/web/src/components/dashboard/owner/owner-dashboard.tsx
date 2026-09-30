@@ -50,7 +50,7 @@ export function OwnerDashboard() {
             <section className="od-panel od-quote-panel">
               <div className="od-panel-heading"><div><p className="od-kicker">Next step</p><h2>Ready to quote?</h2></div><span className="od-spark"><Icon name="bolt" size={16} /></span></div>
               <p className="od-quote-intro">When a buyer request arrives, open your RFQ inbox to review the design brief and send a real price and lead time.</p>
-              <Link className="od-dark-button" href="/dashboard/owner/rfqs">Open RFQ inbox <Icon name="arrow" size={15} /></Link>
+              <Link className="od-dark-button" style={{ color: '#fff', minHeight: 48 }} href="/dashboard/owner/rfqs">Open RFQ inbox <Icon name="arrow" size={15} /></Link>
             </section>
           </div>
 

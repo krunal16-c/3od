@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { clearSessionCookie, createSessionToken, hashSessionToken, parseSessionCookie, sessionCookie } from './session.js';
+import { clearSessionCookie, createSessionToken, createVerificationToken, hashSessionToken, parseSessionCookie, readVerificationToken, sessionCookie } from './session.js';
 
 describe('Worker cookie sessions', () => {
   it('creates an opaque token and stores only its SHA-256 digest', async () => {
@@ -23,5 +23,12 @@ describe('Worker cookie sessions', () => {
     expect(sessionCookie('opaque-token', true)).toContain('; Secure');
     expect(clearSessionCookie(true)).toContain('SameSite=None;');
     expect(sessionCookie('opaque-token', false)).toContain('SameSite=Lax;');
+  });
+
+  it('round-trips signed verification links and rejects expired or modified links', async () => {
+    const token = await createVerificationToken('user-1', 'verification-secret', Date.now() + 60_000);
+    expect(await readVerificationToken(token, 'verification-secret')).toBe('user-1');
+    expect(await readVerificationToken(`${token}x`, 'verification-secret')).toBeNull();
+    expect(await readVerificationToken(await createVerificationToken('user-1', 'verification-secret', Date.now() - 1), 'verification-secret')).toBeNull();
   });
 });

@@ -14,9 +14,10 @@ class InMemoryD1 implements D1DatabaseLike {
   private readonly database = new DatabaseSync(':memory:');
 
   constructor() {
-    this.database.exec(
+    this.database.exec([
       readFileSync(new URL('../../migrations/0001_marketplace.sql', import.meta.url), 'utf8'),
-    );
+      readFileSync(new URL('../../migrations/0002_email_verification.sql', import.meta.url), 'utf8'),
+    ].join('\n'));
   }
 
   prepare(query: string): D1PreparedStatementLike {
