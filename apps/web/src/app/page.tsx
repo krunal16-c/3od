@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { siteCopy } from './content/site-copy';
+import { blogPosts } from './content/blog';
 import { AudienceCards } from '../components/marketing/audience-cards';
 import { Footer } from '../components/marketing/footer';
 import { Header, Hero } from '../components/marketing/hero';
@@ -32,6 +34,28 @@ export default function HomePage() {
           <h2>{siteCopy.buyer.promise}</h2>
         </section>
         <HowItWorks />
+        <section className="section shell journal-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">3oD Journal</p>
+              <h2>Know what to make next.</h2>
+            </div>
+            <Link className="text-link" href="/blog">View all guides →</Link>
+          </div>
+          <div className="blog-grid">
+            {blogPosts.map((post) => (
+              <article className="blog-card" key={post.slug}>
+                <div className="blog-card-image" style={{ backgroundImage: `url(${post.image})` }} role="img" aria-label={post.imageAlt} />
+                <div className="blog-card-body">
+                  <p className="eyebrow">{post.category} · {post.readTime}</p>
+                  <h2><Link href={`/blog/${post.slug}`}>{post.title}</Link></h2>
+                  <p>{post.description}</p>
+                  <Link className="text-link" href={`/blog/${post.slug}`}>Read the guide →</Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
         <section className="section shell use-section">
           <div className="section-heading">
             <p className="eyebrow">{siteCopy.sections.useEyebrow}</p>
