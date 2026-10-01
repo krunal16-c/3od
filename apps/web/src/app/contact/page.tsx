@@ -18,9 +18,13 @@ export default function ContactPage() {
         <h1>Let’s build the making network together.</h1>
         <p className="lead">Whether you want to bring manufacturing capacity to 3oD, explore a partnership, or share feedback, we’d love to hear from you.</p>
         <div className="contact-card">
-          <p className="eyebrow">Partnerships and enquiries</p>
+          <div className="contact-card-top">
+            <p className="eyebrow">Partnerships and enquiries</p>
+            <span className="contact-card-mark" aria-hidden="true">↗</span>
+          </div>
           <a className="contact-email" href="mailto:partnerships@zesterproductstudio.com">partnerships@zesterproductstudio.com</a>
           <p>Tell us a little about what you are building, the capabilities you bring, or how we can help. We’ll get back to you as soon as we can.</p>
+          <a className="contact-send" href="mailto:partnerships@zesterproductstudio.com">Send an email <span aria-hidden="true">↗</span></a>
         </div>
         <Link className="article-back" href="/">← Return home</Link>
       </main>
