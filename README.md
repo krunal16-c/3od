@@ -133,6 +133,8 @@ There is no demo-data seed command. Development and production dashboards intent
 
 The public site includes a `/blog` guide hub covering CAD preparation, 3D printing, CNC machining, and quote comparison. The current live RFQ workflow remains focused on 3D printing; future processes are clearly labelled as upcoming rather than presented as available services.
 
+The product roadmap is split into seven implementation tickets in [`docs/roadmap/tickets`](docs/roadmap/tickets/README.md), covering trust, RFQs, production, payments, vendor tools, manufacturing expansion, and growth.
+
 Open `/login`, `/signup`, `/request-quote`, `/dashboard/buyer`, or `/dashboard/owner`.
 
 The quote flow is protected by the API session cookie. Opening `/request-quote` checks the current session; unauthenticated visitors are sent to `/login?next=/request-quote` and returned to the quote form after a successful login.
