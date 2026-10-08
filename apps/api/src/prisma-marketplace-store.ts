@@ -27,10 +27,11 @@ export class PrismaMarketplaceStore extends MarketplaceStore {
   async updateQuote(id: string, patch: Partial<Quote>) { return await this.call<Quote>('quote', 'update', { where: { id }, data: patch }); }
   async createRfqFile(input: CreateRfqFileInput) { return await this.call<RfqFile>('rfqFile', 'create', { data: input }); }
   async findVendorProfileByUserId(userId: string) { return await this.call<VendorProfile | null>('vendorProfile', 'findUnique', { where: { userId } }); }
-  async findVendorProfileBySlug(slug: string) { return await this.call<VendorProfile | null>('vendorProfile', 'findUnique', { where: { slug } }); }
+  async findVendorProfileBySlug(slug: string) { return await this.call<VendorProfile | null>('vendorProfile', 'findFirst', { where: { slug, isPublished: true } }); }
   async upsertVendorProfile(input: CreateVendorProfileInput) { const { userId, ...profile } = input; return await this.call<VendorProfile>('vendorProfile', 'upsert', { where: { userId }, data: { create: input, update: profile } }); }
   async listPrintersByVendor(vendorId: string) { return await this.call<Printer[]>('printer', 'findMany', { where: { vendorId, isActive: true }, orderBy: { createdAt: 'desc' } }); }
   async createPrinter(input: CreatePrinterInput) { return await this.call<Printer>('printer', 'create', { data: input }); }
   async createVendorContact(input: CreateVendorContactInput) { return await this.call<VendorContact>('vendorContact', 'create', { data: input }); }
   async listVendorContacts(vendorId: string) { return await this.call<VendorContact[]>('vendorContact', 'findMany', { where: { vendorId }, orderBy: { createdAt: 'desc' } }); }
+  async countVendorContactsByBuyerSince(buyerId: string, since: Date) { return await this.call<number>('vendorContact', 'count', { where: { buyerId, createdAt: { gte: since } } }); }
 }

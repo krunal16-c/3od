@@ -18,6 +18,17 @@ export enum QuoteState {
   EXPIRED = 'EXPIRED',
 }
 
+export enum OrderStatus {
+  ACCEPTED = 'ACCEPTED',
+  AWAITING_PAYMENT = 'AWAITING_PAYMENT',
+  IN_PRODUCTION = 'IN_PRODUCTION',
+  QUALITY_CHECK = 'QUALITY_CHECK',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+  DISPUTED = 'DISPUTED',
+}
+
 const rfqTransitions: Record<RfqState, readonly RfqState[]> = {
   [RfqState.DRAFT]: [RfqState.SUBMITTED, RfqState.CANCELLED],
   [RfqState.SUBMITTED]: [
@@ -54,6 +65,17 @@ const quoteTransitions: Record<QuoteState, readonly QuoteState[]> = {
   [QuoteState.EXPIRED]: [],
 };
 
+const orderTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
+  [OrderStatus.ACCEPTED]: [OrderStatus.AWAITING_PAYMENT, OrderStatus.CANCELLED],
+  [OrderStatus.AWAITING_PAYMENT]: [OrderStatus.IN_PRODUCTION, OrderStatus.CANCELLED],
+  [OrderStatus.IN_PRODUCTION]: [OrderStatus.QUALITY_CHECK, OrderStatus.CANCELLED, OrderStatus.DISPUTED],
+  [OrderStatus.QUALITY_CHECK]: [OrderStatus.SHIPPED, OrderStatus.IN_PRODUCTION, OrderStatus.DISPUTED],
+  [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.DISPUTED],
+  [OrderStatus.DELIVERED]: [OrderStatus.DISPUTED],
+  [OrderStatus.CANCELLED]: [],
+  [OrderStatus.DISPUTED]: [],
+};
+
 export function transitionRfq(current: RfqState, next: RfqState): RfqState {
   if (!rfqTransitions[current].includes(next)) {
     throw new Error(`Invalid RFQ state transition: ${current} -> ${next}`);
@@ -64,6 +86,13 @@ export function transitionRfq(current: RfqState, next: RfqState): RfqState {
 export function transitionQuote(current: QuoteState, next: QuoteState): QuoteState {
   if (!quoteTransitions[current].includes(next)) {
     throw new Error(`Invalid quote state transition: ${current} -> ${next}`);
+  }
+  return next;
+}
+
+export function transitionOrder(current: OrderStatus, next: OrderStatus): OrderStatus {
+  if (!orderTransitions[current].includes(next)) {
+    throw new Error(`Invalid order state transition: ${current} -> ${next}`);
   }
   return next;
 }

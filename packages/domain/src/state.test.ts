@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  OrderStatus,
   QuoteState,
   RfqState,
+  transitionOrder,
   transitionQuote,
   transitionRfq,
 } from './state';
@@ -20,6 +22,21 @@ describe('RFQ state transitions', () => {
     expect(() =>
       transitionRfq(RfqState.CANCELLED, RfqState.OPEN_FOR_QUOTES),
     ).toThrow('Invalid RFQ state transition');
+  });
+});
+
+describe('order state transitions', () => {
+  it('allows a vendor to move an accepted order through production and shipping', () => {
+    expect(transitionOrder(OrderStatus.ACCEPTED, OrderStatus.AWAITING_PAYMENT)).toBe(OrderStatus.AWAITING_PAYMENT);
+    expect(transitionOrder(OrderStatus.AWAITING_PAYMENT, OrderStatus.IN_PRODUCTION)).toBe(OrderStatus.IN_PRODUCTION);
+    expect(transitionOrder(OrderStatus.IN_PRODUCTION, OrderStatus.QUALITY_CHECK)).toBe(OrderStatus.QUALITY_CHECK);
+    expect(transitionOrder(OrderStatus.QUALITY_CHECK, OrderStatus.SHIPPED)).toBe(OrderStatus.SHIPPED);
+  });
+
+  it('allows delivery confirmation and dispute entry but rejects invalid jumps', () => {
+    expect(transitionOrder(OrderStatus.SHIPPED, OrderStatus.DELIVERED)).toBe(OrderStatus.DELIVERED);
+    expect(transitionOrder(OrderStatus.DELIVERED, OrderStatus.DISPUTED)).toBe(OrderStatus.DISPUTED);
+    expect(() => transitionOrder(OrderStatus.ACCEPTED, OrderStatus.SHIPPED)).toThrow('Invalid order state transition');
   });
 });
 

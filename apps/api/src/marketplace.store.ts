@@ -1,11 +1,11 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import type { Printer, Quote, Rfq, RfqFile, Session, User, UserRole, VendorContact, VendorProfile } from '@3od/domain';
+import type { Printer, Quote, Rfq, RfqFile, RfqProcess, Session, User, UserRole, VendorContact, VendorProfile } from '@3od/domain';
 import { QuoteState, RfqState } from '@3od/domain';
 
 export type CreateUserInput = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
 export type CreateSessionInput = Omit<Session, 'id' | 'createdAt' | 'updatedAt'>;
-export type CreateRfqInput = Omit<Rfq, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateRfqInput = Omit<Rfq, 'id' | 'createdAt' | 'updatedAt' | 'process'> & { process?: RfqProcess };
 export type CreateQuoteInput = Omit<Quote, 'id' | 'createdAt' | 'updatedAt'>;
 export type CreateRfqFileInput = Omit<RfqFile, 'id' | 'createdAt' | 'updatedAt'>;
 export type CreateVendorProfileInput = Omit<VendorProfile, 'id' | 'createdAt' | 'updatedAt'>;
@@ -37,6 +37,7 @@ export abstract class MarketplaceStore {
   abstract createPrinter(input: CreatePrinterInput): Promise<Printer>;
   abstract createVendorContact(input: CreateVendorContactInput): Promise<VendorContact>;
   abstract listVendorContacts(vendorId: string): Promise<readonly VendorContact[]>;
+  abstract countVendorContactsByBuyerSince(buyerId: string, since: Date): Promise<number>;
 }
 
 @Injectable()
@@ -60,7 +61,7 @@ export class InMemoryMarketplaceStore extends MarketplaceStore {
   async deleteSession(id: string) { return this.sessions.delete(id); }
   async findRfqById(id: string) { return this.rfqs.get(id) ?? null; }
   async findRfqByBuyerAndIdempotencyKey(buyerId: string, key: string) { return [...this.rfqs.values()].find((rfq) => rfq.buyerId === buyerId && rfq.idempotencyKey === key) ?? null; }
-  async createRfq(input: CreateRfqInput) { const existing = await this.findRfqByBuyerAndIdempotencyKey(input.buyerId, input.idempotencyKey); if (existing) return existing; const now = new Date(); const rfq = { ...input, id: this.nextId('rfq'), createdAt: now, updatedAt: now }; this.rfqs.set(rfq.id, rfq); return rfq; }
+  async createRfq(input: CreateRfqInput) { const existing = await this.findRfqByBuyerAndIdempotencyKey(input.buyerId, input.idempotencyKey); if (existing) return existing; const now = new Date(); const rfq = { ...input, process: input.process ?? '3d_printing' as const, id: this.nextId('rfq'), createdAt: now, updatedAt: now }; this.rfqs.set(rfq.id, rfq); return rfq; }
   async listRfqsByBuyer(buyerId: string) { return [...this.rfqs.values()].filter((rfq) => rfq.buyerId === buyerId); }
   async listOpenRfqs() { return [...this.rfqs.values()].filter((rfq) => rfq.state === RfqState.OPEN_FOR_QUOTES); }
   async updateRfq(id: string, patch: Partial<Rfq>) { const current = this.rfqs.get(id); if (!current) return null; const updated = { ...current, ...patch, updatedAt: new Date() }; this.rfqs.set(id, updated); return updated; }
@@ -76,6 +77,7 @@ export class InMemoryMarketplaceStore extends MarketplaceStore {
   async createPrinter(input: CreatePrinterInput) { const now = new Date(); const printer = { ...input, id: this.nextId('printer'), createdAt: now, updatedAt: now }; this.printers.set(printer.id, printer); return printer; }
   async createVendorContact(input: CreateVendorContactInput) { const now = new Date(); const contact = { ...input, id: this.nextId('contact'), createdAt: now, updatedAt: now }; this.vendorContacts.set(contact.id, contact); return contact; }
   async listVendorContacts(vendorId: string) { return [...this.vendorContacts.values()].filter((contact) => contact.vendorId === vendorId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); }
+  async countVendorContactsByBuyerSince(buyerId: string, since: Date) { return [...this.vendorContacts.values()].filter((contact) => contact.buyerId === buyerId && contact.createdAt >= since).length; }
 }
 
 export function hashToken(token: string) { return createHash('sha256').update(token).digest('hex'); }

@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { validateEnvironment, type WorkerEnv } from './env.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerMarketplaceRoutes } from './routes/marketplace.js';
+import { registerPaymentRoutes } from './routes/payments.js';
 
 type AppVariables = {
   requestId: string;
@@ -73,6 +74,7 @@ export function createApp(): ApiApp {
 
   registerAuthRoutes(app);
   registerMarketplaceRoutes(app);
+  registerPaymentRoutes(app);
 
   app.onError((error, context) => {
     const statusCode = isHttpError(error) ? error.statusCode : 500;

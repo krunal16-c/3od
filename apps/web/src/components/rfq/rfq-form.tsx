@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ApiClientError, createRfq, uploadRfqFile } from '../../lib/api-client';
+import { trackMarketingEvent } from '../../lib/marketing-events';
 
 const fieldStyle = { width: '100%', border: '1px solid var(--line)', background: 'var(--paper)', padding: '13px 14px', color: 'var(--ink)', font: 'inherit' };
 const labelStyle = { display: 'grid', gap: 8, fontSize: 14, fontWeight: 600 };
@@ -21,6 +22,12 @@ export function RfqForm() {
   const [error, setError] = useState('');
   const [rfqId, setRfqId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const source = typeof window === 'undefined' ? undefined : new URLSearchParams(window.location.search).get('source') ?? undefined;
+
+  useEffect(() => {
+    trackMarketingEvent('rfq_form_viewed', source);
+  }, [source]);
 
   if (submitted) {
     return (
@@ -55,6 +62,7 @@ export function RfqForm() {
         notes: String(form.get('notes') ?? '').trim() || undefined,
       }, idempotencyKey());
       await uploadRfqFile(rfq.id, file);
+      trackMarketingEvent('rfq_submitted', source);
       setRfqId(rfq.id);
       setSubmitted(true);
     } catch (error) {
@@ -81,7 +89,7 @@ export function RfqForm() {
         {error && <p role="alert" style={{ color: 'var(--orange-dark)', fontSize: 13, lineHeight: 1.5, margin: 0 }}>{error}</p>}
         <button className="button" type="submit" disabled={submitting}>{submitting ? 'Sending request…' : 'Send request for quote'} <span aria-hidden="true">↗</span></button>
       </div>
-      <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.5, margin: '22px 0 0' }}>Your design file is uploaded directly to protected 3oD storage.</p>
+      <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.5, margin: '22px 0 0' }}>Your design file is uploaded directly to protected 3oD storage. By sending a request, you agree to our <Link href="/policies/file-ownership" style={{ color: 'var(--orange-dark)', textDecoration: 'underline' }}>file-ownership policy</Link> and <Link href="/policies/acceptable-use" style={{ color: 'var(--orange-dark)', textDecoration: 'underline' }}>acceptable-use rules</Link>.</p>
     </form>
   );
 }

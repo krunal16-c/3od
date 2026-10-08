@@ -24,3 +24,13 @@
 ## Dependencies
 
 Better RFQs, order lifecycle, process capability model.
+
+## Implemented slice
+
+- Printer capabilities now persist supported processes, MOQ, and typical lead time.
+- Public vendor pages expose those capability fields without private account identifiers.
+- Vendor owners can create and list printer blackout ranges; overlapping ranges and cross-vendor access are rejected.
+- `/vendor/reports/summary` calculates owner-scoped counts and earnings from stored records only.
+- D1 and Prisma migrations are included in `0006_vendor_tools.sql` and `20261008170000_vendor_tools`.
+
+Remaining scope includes material inventory, quote templates/cost assumptions, costing attachments, and richer utilization/response-time analytics.

@@ -1,9 +1,38 @@
-import { QuoteState, RfqState } from './state';
+import { OrderStatus, QuoteState, RfqState } from './state';
+import { PaymentState } from './payment-state';
+import type { ManufacturingProcess } from './manufacturing';
 
 export type UserRole = 'BUYER' | 'PRINTER_OWNER' | 'ADMIN';
 export type VendorContactStatus = 'NEW' | 'READ' | 'REPLIED' | 'CLOSED';
 export type RfqFileState = 'PENDING' | 'VALIDATED' | 'REJECTED';
-export type AuditEntityType = 'USER' | 'SESSION' | 'RFQ' | 'RFQ_FILE' | 'QUOTE';
+export type RfqProcess = ManufacturingProcess;
+export type AuditEntityType = 'USER' | 'SESSION' | 'RFQ' | 'RFQ_FILE' | 'QUOTE' | 'ORDER';
+export type NotificationType = 'ORDER_CREATED' | 'ORDER_STATUS_CHANGED' | 'DELIVERY_CONFIRMED';
+
+export interface Payment {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  vendorId: string;
+  amountPaise: number;
+  currency: 'INR';
+  state: PaymentState;
+  provider: string;
+  providerPaymentId?: string | null;
+  idempotencyKey: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentWebhookEvent {
+  id: string;
+  provider: string;
+  providerEventId: string;
+  eventType: string;
+  payloadHash: string;
+  processedAt?: Date | null;
+  createdAt: Date;
+}
 
 export interface User {
   id: string;
@@ -37,10 +66,30 @@ export interface Printer {
   model?: string | null;
   technologies: string[];
   materials: string[];
+  processes: RfqProcess[];
   minOrderQuantity: number;
+  leadTimeDays: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PrinterBlackout {
+  id: string;
+  printerId: string;
+  startsOn: Date;
+  endsOn: Date;
+  reason?: string | null;
+  createdAt: Date;
+}
+
+export interface VendorReportSummary {
+  printerCount: number;
+  openRfqCount: number;
+  quoteCount: number;
+  acceptedQuoteCount: number;
+  orderCount: number;
+  earningsInr: number;
 }
 
 export interface VendorContact {
@@ -53,6 +102,7 @@ export interface VendorContact {
   createdAt: Date;
   updatedAt: Date;
 }
+
 
 export interface Session {
   id: string;
@@ -68,12 +118,16 @@ export interface Rfq {
   buyerId: string;
   idempotencyKey: string;
   title: string;
+  process: RfqProcess;
   state: RfqState;
   description?: string | null;
   quantity?: number | null;
   material?: string | null;
   finish?: string | null;
   deadline?: Date | null;
+  tolerance?: string | null;
+  location?: string | null;
+  shippingPreference?: 'pickup' | 'shipping' | 'either' | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +148,7 @@ export interface Quote {
   id: string;
   rfqId: string;
   supplierId: string;
+  idempotencyKey?: string | null;
   state: QuoteState;
   totalAmountInr: number;
   currency: 'INR';
@@ -102,6 +157,29 @@ export interface Quote {
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Order {
+  id: string;
+  buyerId: string;
+  vendorId: string;
+  rfqId: string;
+  quoteId: string;
+  status: OrderStatus;
+  pickupAddress?: string | null;
+  shippingAddress?: string | null;
+  trackingNumber?: string | null;
+  deliveryConfirmedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  orderId: string;
+  type: NotificationType;
+  createdAt: Date;
 }
 
 export interface AuditEvent {
@@ -150,6 +228,15 @@ export interface RfqFileRepository extends Repository<RfqFile, CreateInput<RfqFi
 export interface QuoteRepository extends Repository<Quote, CreateInput<Quote>> {
   findByRfqId(rfqId: string): Promise<readonly Quote[]>;
   findBySupplierId(supplierId: string): Promise<readonly Quote[]>;
+}
+
+export interface OrderRepository extends Repository<Order, CreateInput<Order>> {
+  findByQuoteId(quoteId: string): Promise<Order | null>;
+  findByParticipantId(userId: string): Promise<readonly Order[]>;
+}
+
+export interface NotificationRepository extends Repository<Notification, CreateInput<Notification>> {
+  findByUserId(userId: string): Promise<readonly Notification[]>;
 }
 
 export interface AuditEventRepository

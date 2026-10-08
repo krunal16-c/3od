@@ -9,6 +9,7 @@ describe('InMemoryRfqRepository', () => {
       buyerId: 'buyer-1',
       idempotencyKey: 'request-1',
       title: 'Bracket',
+      process: '3d_printing' as const,
       state: RfqState.DRAFT,
     };
 
@@ -25,6 +26,7 @@ describe('InMemoryRfqRepository', () => {
       buyerId: 'buyer-1',
       idempotencyKey: 'request-1',
       title: 'Bracket',
+      process: '3d_printing',
       state: RfqState.DRAFT,
     });
 
@@ -33,6 +35,7 @@ describe('InMemoryRfqRepository', () => {
         buyerId: 'buyer-2',
         idempotencyKey: 'request-1',
         title: 'Bracket',
+        process: '3d_printing',
         state: RfqState.DRAFT,
       }),
     ).resolves.toMatchObject({ buyerId: 'buyer-2' });

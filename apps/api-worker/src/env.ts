@@ -6,6 +6,7 @@ export interface WorkerEnv {
   SESSION_SECRET?: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  PAYMENT_WEBHOOK_SECRET?: string;
   DB?: D1Database;
   FILES?: R2Bucket;
 }
@@ -16,6 +17,7 @@ export interface ValidatedWorkerEnv {
   SESSION_SECRET: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  PAYMENT_WEBHOOK_SECRET?: string;
   DB: D1Database;
   FILES: R2Bucket;
 }
@@ -59,6 +61,7 @@ export function validateEnvironment(environment: WorkerEnv): ValidatedWorkerEnv 
     SESSION_SECRET: environment.SESSION_SECRET,
     RESEND_API_KEY: environment.RESEND_API_KEY,
     MAIL_FROM: environment.MAIL_FROM,
+    PAYMENT_WEBHOOK_SECRET: environment.PAYMENT_WEBHOOK_SECRET,
     DB: environment.DB,
     FILES: environment.FILES,
   };

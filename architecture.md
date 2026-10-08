@@ -124,7 +124,17 @@ RFQ: OPEN_FOR_QUOTES -> QUOTES_RECEIVED -> QUOTE_SELECTED
 Quote: VISIBLE_TO_BUYER -> ACCEPTED
 ```
 
-The buyer can accept only a visible quote belonging to their RFQ. The API updates the quote and RFQ states server-side. Payment, order creation, and payouts should be attached to the `QUOTE_SELECTED` transition in a later milestone.
+The buyer can accept only a visible quote belonging to their RFQ. The API updates the quote and RFQ states server-side. Payment readiness is represented in `packages/domain/src/payment-state.ts`: only an API-confirmed `CAPTURED` payment can unlock a payment-required production order. The shared settlement calculator keeps INR amounts in paise and exposes gross amount, platform fee, GST on the platform fee, and vendor payout without connecting a live provider.
+
+### Order and production lifecycle
+
+Accepting a visible quote creates exactly one order linked to the buyer, vendor, RFQ, and quote. The Cloudflare Worker stores pickup/shipping details and enforces this status path server-side:
+
+```text
+ACCEPTED -> AWAITING_PAYMENT -> IN_PRODUCTION -> QUALITY_CHECK -> SHIPPED -> DELIVERED
+```
+
+Cancellation is allowed before shipment, and either participant can enter a dispute from an active or delivered order. Only the vendor can move production statuses; only the buyer can confirm delivery. `/orders/mine` and `/orders/:id` are participant-scoped. Every order creation, status change, and delivery confirmation writes an order audit event and creates in-app notification records for both participants. Email delivery remains an asynchronous notification concern and is not performed inside the request transaction.
 
 ### Vendor storefront and contact flow
 
@@ -135,6 +145,18 @@ The buyer can accept only a visible quote belonging to their RFQ. The API update
 5. The API stores the contact as `NEW`; the owner can read it from the vendor contact inbox endpoint.
 
 The first release intentionally keeps vendor contact as a platform message record. Direct phone/email exposure, payments, reviews, and vendor verification can be added as separate, auditable milestones.
+
+### Growth and SEO slice
+
+The web app keeps public acquisition content in `apps/web/src/app/content`. Manufacturing landing pages are catalog-driven so an unsupported process cannot accidentally receive an “available” quote CTA. The `/manufacturing` directory labels future capabilities as coming next or planned; only live capabilities are linked to the authenticated RFQ flow.
+
+Each indexable manufacturing page owns its title, description, canonical URL, and FAQ content. The page emits Service, BreadcrumbList, and FAQPage JSON-LD, and the sitemap includes only the catalog pages. RFQ links carry a non-sensitive `source` value so the funnel can distinguish which public page started a request. The client emits aggregate view/submission events to an optional `dataLayer` and a browser event; event payloads deliberately exclude identities, file names, session tokens, and RFQ contents.
+
+### Vendor capacity slice
+
+Printer records carry supported manufacturing processes, minimum order quantity, and a typical lead time. These fields are returned in the public storefront capability summary and are validated server-side. Vendor owners can add non-overlapping printer blackout date ranges through the authenticated availability routes; another vendor cannot read or modify those records. Vendor reports are calculated from persisted printer, RFQ, quote, and order records and are owner-scoped, with no synthetic dashboard values.
+
+Manufacturing authorization is tenant-scoped in both the Worker and Nest API paths. An RFQ is shown in a vendor inbox only when an active printer owned by that vendor lists the enabled process; quote submission repeats that check at the write boundary. Buyers see all quotes for their own RFQ, while vendors can only read their own quote, preventing competitor pricing disclosure. Public storefront responses omit internal vendor ownership identifiers.
 
 ## Persistence
 
@@ -148,7 +170,10 @@ The current production path uses PostgreSQL through Prisma. The Cloudflare migra
 - `AuditEvent`
 - `VendorProfile`
 - `Printer`
+- `PrinterBlackout`
 - `VendorContact`
+- `Order`
+- `Notification`
 
 The existing API selects the Prisma store when `DATABASE_URL` is configured. The Worker selects D1 through its `DB` binding. Worker tests use a SQLite-backed D1 adapter, so they do not require a live Cloudflare account.
 
@@ -170,6 +195,9 @@ pnpm exec prisma migrate deploy --schema packages/domain/prisma/schema.prisma
 - Uploads use authenticated Worker-to-R2 writes and strict file size/type checks.
 - Idempotency prevents duplicate RFQs during retries.
 - Database state transitions prevent invalid marketplace lifecycle changes.
+- Order participant checks, lifecycle transition guards, audit events, and notification records protect the production workflow.
+- Payment state transitions prevent browser-controlled success claims; provider webhooks and payment credentials remain API-only.
+- Platform fees are configured as bounded basis points and settlement calculations use integer paise to avoid floating-point currency errors.
 
 Before public launch, add CSRF protection for cookie-authenticated mutations, malware scanning, audit event writes, centralized error monitoring, and a tested backup/restore process.
 

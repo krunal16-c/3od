@@ -113,6 +113,7 @@ The Cloudflare API foundation lives in `apps/api-worker`. It uses Hono, D1 for r
 - Vendor profiles, public storefronts, printers, MOQ, and buyer contacts
 - Buyer RFQs with idempotency keys
 - Vendor quotes and buyer quote acceptance
+- Quote acceptance creates a real order with production status transitions, delivery confirmation, and in-app notifications
 - Vendor RFQ review with price, lead-time, and notes submission
 - Account-existence guidance and optional email verification through Resend
 
@@ -125,6 +126,12 @@ pnpm exec wrangler d1 migrations apply 3od-production --remote
 pnpm exec wrangler deploy
 ```
 
+After deploying the order lifecycle change, apply the new D1 migration remotely:
+
+```bash
+pnpm exec wrangler d1 migrations apply 3od-production --remote
+```
+
 For email verification, add `RESEND_API_KEY` as a Worker secret and set `MAIL_FROM` to a verified sender address. When both are configured, new accounts must verify their email before login; without them, local/development signup remains usable without email delivery.
 
 For local Worker development, use a local D1/R2 binding through Wrangler and set the local `APP_ORIGIN` to the frontend origin. Do not put database credentials, session secrets, or R2 access keys in the frontend environment. The Cloudflare Worker is the production API path; it stores marketplace records in D1 and design files in R2.
@@ -132,6 +139,8 @@ For local Worker development, use a local D1/R2 binding through Wrangler and set
 There is no demo-data seed command. Development and production dashboards intentionally show empty states until real users create vendor profiles, printers, RFQs, quotes, and orders.
 
 The public site includes a `/blog` guide hub covering CAD preparation, 3D printing, CNC machining, and quote comparison. The current live RFQ workflow remains focused on 3D printing; future processes are clearly labelled as upcoming rather than presented as available services.
+
+The public site also includes a capability-aware `/manufacturing` directory and indexable pages for live offerings such as `/manufacturing/3d-printing-india` and `/manufacturing/materials/pla-3d-printing`. These pages use canonical metadata, Service/Breadcrumb/FAQ JSON-LD, and source-tagged RFQ links. The RFQ form emits aggregate `rfq_form_viewed` and `rfq_submitted` signals to an optional browser `dataLayer` without sending personal data, private files, or session values.
 
 The product roadmap is split into seven implementation tickets in [`docs/roadmap/tickets`](docs/roadmap/tickets/README.md), covering trust, RFQs, production, payments, vendor tools, manufacturing expansion, and growth.
 
@@ -245,6 +254,8 @@ Implemented foundation:
 - Prisma-backed production store
 - Cloudflare R2 presigned uploads in the existing API; Worker-native R2 upload intents are the next migration checkpoint
 - Vendor storefronts, printer listings, configurable MOQ, and buyer-to-vendor contact requests
+- Vendor capability listings now include supported processes and typical lead time; vendors can record printer blackout dates and view owner-scoped real-record summaries at `/vendor/reports/summary`.
+- Manufacturing capability authorization is enforced in both API implementations: vendor RFQ inboxes are filtered to active listed capabilities, quote submission rejects mismatches, and vendors can only read their own quotes on an RFQ.
 - CORS, Helmet, rate limits, validation, and structured errors
 
 Still required before a public launch:
@@ -252,6 +263,7 @@ Still required before a public launch:
 - Live PostgreSQL smoke test and backup policy
 - Redis/BullMQ worker processing
 - Razorpay payment and payout flow
+- Shared INR payment states and GST-ready platform settlement calculation are available in `packages/domain`; provider credentials and webhook persistence are still pending.
 - Order fulfilment and dispute workflows
 - Admin moderation tools
 - CSRF protection and malware scanning for uploaded files

@@ -14,8 +14,12 @@ export function Footer() {
         <Link href="/for-buyers">{siteCopy.nav.buyers}</Link>
         <Link href="/for-printer-owners">{siteCopy.nav.suppliers}</Link>
         <Link href="/how-it-works">{siteCopy.nav.howItWorks}</Link>
+        <Link href="/manufacturing">Processes</Link>
         <Link href="/blog">Guides</Link>
         <Link href="/contact">Contact</Link>
+        <Link href="/policies/privacy">Privacy</Link>
+        <Link href="/policies/terms">Terms</Link>
+        <Link href="/policies/acceptable-use">Acceptable use</Link>
       </div>
       <small>{siteCopy.footer.copyright}</small>
     </footer>

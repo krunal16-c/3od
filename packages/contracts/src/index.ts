@@ -23,12 +23,31 @@ export const authUserSchema = z.object({
 
 export const createRfqInputSchema = z.object({
   title: z.string().trim().min(1).max(160),
+  process: z.enum(['3d_printing', 'cnc_milling', 'cnc_turning', 'laser_cutting', 'fabrication', 'waterjet_cutting', 'vacuum_forming', 'injection_molding']).default('3d_printing'),
   material: z.string().trim().min(1).max(80).optional(),
   finish: z.string().trim().min(1).max(80).optional(),
   quantity: z.coerce.number().int().positive().max(100_000),
   neededBy: z.coerce.date().optional(),
+  tolerance: z.string().trim().max(80).optional(),
+  location: z.string().trim().max(120).optional(),
+  shippingPreference: z.enum(['pickup', 'shipping', 'either']).optional(),
   notes: z.string().trim().max(10_000).optional(),
   idempotencyKey: z.string().trim().min(8).max(128).optional(),
+  saveAsDraft: z.boolean().default(false),
+});
+
+export const updateRfqInputSchema = z.object({
+  title: z.string().trim().min(1).max(160).optional(),
+  process: z.enum(['3d_printing', 'cnc_milling', 'cnc_turning', 'laser_cutting', 'fabrication', 'waterjet_cutting', 'vacuum_forming', 'injection_molding']).optional(),
+  material: z.string().trim().min(1).max(80).optional(),
+  finish: z.string().trim().min(1).max(80).optional(),
+  quantity: z.coerce.number().int().positive().max(100_000).optional(),
+  neededBy: z.coerce.date().optional(),
+  tolerance: z.string().trim().max(80).optional(),
+  location: z.string().trim().max(120).optional(),
+  shippingPreference: z.enum(['pickup', 'shipping', 'either']).optional(),
+  notes: z.string().trim().max(10_000).optional(),
+  submit: z.boolean().default(false),
 });
 
 export const createQuoteInputSchema = z.object({
@@ -38,6 +57,16 @@ export const createQuoteInputSchema = z.object({
   notes: z.string().trim().max(10_000).optional(),
   expiresAt: z.coerce.date().optional(),
   idempotencyKey: z.string().trim().min(8).max(128).optional(),
+});
+
+export const acceptQuoteInputSchema = z.object({
+  pickupAddress: z.string().trim().max(500).optional(),
+  shippingAddress: z.string().trim().max(500).optional(),
+});
+
+export const updateOrderStatusInputSchema = z.object({
+  status: z.enum(['AWAITING_PAYMENT', 'IN_PRODUCTION', 'QUALITY_CHECK', 'SHIPPED', 'DISPUTED', 'CANCELLED']),
+  trackingNumber: z.string().trim().max(120).optional(),
 });
 
 export const paginationQuerySchema = z.object({
@@ -61,8 +90,16 @@ export const printerInputSchema = z.object({
   model: z.string().trim().max(120).optional(),
   technologies: stringListSchema,
   materials: stringListSchema,
+  processes: z.array(z.enum(['3d_printing', 'cnc_milling', 'cnc_turning', 'laser_cutting', 'fabrication', 'waterjet_cutting', 'vacuum_forming', 'injection_molding'])).min(1).max(10).default(['3d_printing']),
   minOrderQuantity: z.coerce.number().int().positive().max(100_000).default(1),
+  leadTimeDays: z.coerce.number().int().positive().max(365).default(5),
 });
+
+export const printerBlackoutInputSchema = z.object({
+  startsOn: z.coerce.date(),
+  endsOn: z.coerce.date(),
+  reason: z.string().trim().max(240).optional(),
+}).refine((value) => value.startsOn <= value.endsOn, { message: 'The blackout end date must be on or after the start date.' });
 
 export const vendorContactInputSchema = z.object({
   message: z.string().trim().min(5).max(4_000),
@@ -80,6 +117,7 @@ export const apiErrorSchema = z.object({
 export type SignupInput = z.infer<typeof signupInputSchema>;
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type CreateRfqInput = z.infer<typeof createRfqInputSchema>;
+export type UpdateRfqInput = z.infer<typeof updateRfqInputSchema>;
 export type CreateQuoteInput = z.infer<typeof createQuoteInputSchema>;
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 export type VendorProfileInput = z.infer<typeof vendorProfileInputSchema>;

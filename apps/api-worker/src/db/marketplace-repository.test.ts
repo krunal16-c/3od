@@ -17,6 +17,10 @@ class InMemoryD1 implements D1DatabaseLike {
     this.database.exec([
       readFileSync(new URL('../../migrations/0001_marketplace.sql', import.meta.url), 'utf8'),
       readFileSync(new URL('../../migrations/0002_email_verification.sql', import.meta.url), 'utf8'),
+      readFileSync(new URL('../../migrations/0003_rfq_process_metadata.sql', import.meta.url), 'utf8'),
+      readFileSync(new URL('../../migrations/0004_orders.sql', import.meta.url), 'utf8'),
+      readFileSync(new URL('../../migrations/0005_quote_idempotency.sql', import.meta.url), 'utf8'),
+      readFileSync(new URL('../../migrations/0006_vendor_tools.sql', import.meta.url), 'utf8'),
     ].join('\n'));
   }
 
@@ -118,7 +122,7 @@ describe('D1MarketplaceRepository', () => {
 
     expect(created.id).toBe(retried.id);
     expect(await repository.listRfqsByBuyer(buyer.id)).toHaveLength(1);
-    expect(await repository.findRfqByBuyerAndIdempotencyKey(buyer.id, 'request-1')).toEqual(
+    expect(await repository.findRfqByBuyerAndIdempotencyKey(buyer.id, 'request-1')).toMatchObject(
       created,
     );
   });
@@ -234,5 +238,92 @@ describe('D1MarketplaceRepository', () => {
         state: file.state,
       }),
     ).rejects.toThrow();
+  });
+
+  it('round-trips audit events with actor, entity, and metadata', async () => {
+    const repository = new D1MarketplaceRepository(new InMemoryD1());
+    const actor = await repository.createUser({
+      email: 'moderator@example.com',
+      passwordHash: 'hash',
+      role: 'ADMIN',
+      displayName: 'Moderator',
+    });
+    const buyer = await repository.createUser({
+      email: 'buyer@example.com',
+      passwordHash: 'hash',
+      role: 'BUYER',
+      displayName: 'Buyer',
+    });
+    const rfq = await repository.createRfq({
+      buyerId: buyer.id,
+      idempotencyKey: 'audit-rfq-1',
+      title: 'Reported design',
+      state: RfqState.OPEN_FOR_QUOTES,
+      description: null,
+      quantity: 1,
+      material: null,
+      finish: null,
+      deadline: null,
+    });
+
+    const event = await repository.createAuditEvent({
+      actorUserId: actor.id,
+      entityType: 'RFQ',
+      entityId: rfq.id,
+      action: 'REPORT_CREATED',
+      metadata: { reportReference: 'TRUST-0001', reason: 'PROHIBITED_ITEM' },
+    });
+
+    expect(await repository.listAuditEvents('RFQ', rfq.id)).toEqual([event]);
+    expect(event).toMatchObject({
+      actorUserId: actor.id,
+      entityType: 'RFQ',
+      entityId: rfq.id,
+      action: 'REPORT_CREATED',
+      metadata: { reportReference: 'TRUST-0001', reason: 'PROHIBITED_ITEM' },
+    });
+  });
+
+  it('does not return audit events for another entity', async () => {
+    const repository = new D1MarketplaceRepository(new InMemoryD1());
+    const buyer = await repository.createUser({
+      email: 'buyer@example.com',
+      passwordHash: 'hash',
+      role: 'BUYER',
+      displayName: 'Buyer',
+    });
+    const firstRfq = await repository.createRfq({
+      buyerId: buyer.id,
+      idempotencyKey: 'audit-rfq-1',
+      title: 'First RFQ',
+      state: RfqState.OPEN_FOR_QUOTES,
+      description: null,
+      quantity: 1,
+      material: null,
+      finish: null,
+      deadline: null,
+    });
+    const secondRfq = await repository.createRfq({
+      buyerId: buyer.id,
+      idempotencyKey: 'audit-rfq-2',
+      title: 'Second RFQ',
+      state: RfqState.OPEN_FOR_QUOTES,
+      description: null,
+      quantity: 1,
+      material: null,
+      finish: null,
+      deadline: null,
+    });
+
+    await repository.createAuditEvent({
+      actorUserId: null,
+      entityType: 'RFQ',
+      entityId: firstRfq.id,
+      action: 'RFQ_STATE_CHANGED',
+      metadata: { from: 'OPEN_FOR_QUOTES', to: 'CANCELLED' },
+    });
+
+    expect(await repository.listAuditEvents('RFQ', firstRfq.id)).toHaveLength(1);
+    expect(await repository.listAuditEvents('RFQ', secondRfq.id)).toEqual([]);
   });
 });

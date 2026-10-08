@@ -25,6 +25,7 @@ export default function HomePage() {
                 <span className="service-status">{status}</span>
                 <h3>{name}</h3>
                 <p>{description}</p>
+                {name === '3D printing' && <Link className="text-link" href="/manufacturing/3d-printing-india">Explore 3D printing →</Link>}
               </article>
             ))}
           </div>

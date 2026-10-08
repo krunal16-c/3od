@@ -1,8 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req, Res } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
-import { getServerEnv } from '@3od/config/env/server';
 import { createQuoteInputSchema, createRfqInputSchema, loginInputSchema, printerInputSchema, signupInputSchema, vendorContactInputSchema, vendorProfileInputSchema } from '@3od/contracts';
-import { QuoteState, RfqState, transitionQuote, transitionRfq } from '@3od/domain';
+import { QuoteState, RfqState, canVendorQuoteProcess, hasEnabledCapability, isEnabledManufacturingProcess, transitionQuote, transitionRfq, validateManufacturingRequest } from '@3od/domain';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { hashPassword, hashToken, MarketplaceStore, publicUser, roleForDomain, verifyPassword } from './marketplace.store.js';
 import { R2StorageService } from './r2-storage.js';
@@ -14,6 +13,10 @@ function fail(statusCode: number, code: string, message: string): never { const 
 const badRequest = (message: string): never => fail(400, 'VALIDATION_ERROR', message);
 const unauthorized = (message = 'Authentication required'): never => fail(401, 'UNAUTHENTICATED', message);
 const forbidden = (): never => fail(403, 'FORBIDDEN', 'You do not have access to this resource.');
+const MAX_CONTACTS_PER_HOUR = 5;
+const publicPrinter = (printer: Record<string, unknown>) => { const { vendorId: _vendorId, ...safePrinter } = printer; return safePrinter; };
+const publicContact = (contact: Record<string, unknown>) => { const { id: _id, vendorId: _vendorId, buyerId: _buyerId, ...safeContact } = contact; return safeContact; };
+function normalizedVendorSlug(rawSlug: string) { const slug = rawSlug.trim().toLowerCase(); if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 80) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.'); return slug; }
 function setSession(reply: FastifyReply, token: string) { reply.header('set-cookie', `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`); }
 
 @Controller()
@@ -83,6 +86,8 @@ export class MarketplaceController {
     const vendor = await this.store.findVendorProfileByUserId(user.id); if (!vendor) fail(409, 'VENDOR_PROFILE_REQUIRED', 'Create your vendor profile before adding a printer.');
     const parsed = printerInputSchema.safeParse(body);
     const data = parsed.success ? parsed.data : badRequest('Please provide valid printer details.');
+    if (!hasEnabledCapability(data.processes)) fail(422, 'CAPABILITY_NOT_AVAILABLE', 'List at least one manufacturing capability that is currently available on 3oD.');
+    if (data.processes.some((process) => !isEnabledManufacturingProcess(process))) fail(422, 'PROCESS_NOT_AVAILABLE', 'A printer can only list manufacturing processes that are currently available.');
     return { printer: await this.store.createPrinter({ vendorId: vendor!.id, ...data, isActive: true }) };
   }
 
@@ -102,7 +107,7 @@ export class MarketplaceController {
 
   @Get('/vendors/:slug')
   async publicVendor(@Param('slug') slug: string) {
-    const vendor = await this.store.findVendorProfileBySlug(slug); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
+    const vendor = await this.store.findVendorProfileBySlug(normalizedVendorSlug(slug)); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
     const publicProfile = {
       id: vendor.id,
       slug: vendor.slug,
@@ -115,17 +120,21 @@ export class MarketplaceController {
       createdAt: vendor.createdAt,
       updatedAt: vendor.updatedAt,
     };
-    return { vendor: publicProfile, printers: await this.store.listPrintersByVendor(vendor.id) };
+    const printers = await this.store.listPrintersByVendor(vendor.id);
+    return { vendor: publicProfile, printers: printers.map((printer) => publicPrinter(printer as unknown as Record<string, unknown>)) };
   }
 
   @Post('/vendors/:slug/contact')
   @HttpCode(201)
   async contactVendor(@Req() request: RequestWithUser, @Param('slug') slug: string, @Body() body: unknown) {
     const { user } = await this.current(request); if (user.role !== 'BUYER') forbidden();
-    const vendor = await this.store.findVendorProfileBySlug(slug); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
+    const vendor = await this.store.findVendorProfileBySlug(normalizedVendorSlug(slug)); if (!vendor) fail(404, 'VENDOR_NOT_FOUND', 'This vendor page is not available.');
     const parsed = vendorContactInputSchema.safeParse(body);
     const data = parsed.success ? parsed.data : badRequest('Please add a message before contacting this vendor.');
-    return { contact: await this.store.createVendorContact({ vendorId: vendor!.id, buyerId: user.id, ...data, status: 'NEW' }) };
+    const recentContacts = await this.store.countVendorContactsByBuyerSince(user.id, new Date(Date.now() - 60 * 60 * 1000));
+    if (recentContacts >= MAX_CONTACTS_PER_HOUR) fail(429, 'RATE_LIMITED', 'You have reached the hourly contact limit. Please try again later.');
+    const contact = await this.store.createVendorContact({ vendorId: vendor!.id, buyerId: user.id, ...data, status: 'NEW' });
+    return { contact: publicContact(contact as unknown as Record<string, unknown>) };
   }
 
   @Post('/rfqs')
@@ -136,23 +145,35 @@ export class MarketplaceController {
     const data = input.success ? input.data : badRequest('An Idempotency-Key header is required.');
     const idempotencyKey = data.idempotencyKey;
     if (!idempotencyKey) badRequest('An Idempotency-Key header is required.');
+    const processValidation = validateManufacturingRequest(data);
+    if (!processValidation.ok) fail(422, processValidation.code, processValidation.message);
     return { rfq: await this.store.createRfq({ ...data, buyerId: user.id, idempotencyKey: idempotencyKey!, state: RfqState.OPEN_FOR_QUOTES, description: data.notes ?? null, deadline: data.neededBy ?? null, material: data.material ?? null, finish: data.finish ?? null }) };
   }
 
   @Get('/rfqs/mine')
   async mine(@Req() request: RequestWithUser) { const { user } = await this.current(request); if (user.role !== 'BUYER') forbidden(); return { rfqs: await this.store.listRfqsByBuyer(user.id) }; }
   @Get('/rfqs/inbox')
-  async inbox(@Req() request: RequestWithUser) { const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden(); return { rfqs: await this.store.listOpenRfqs() }; }
+  async inbox(@Req() request: RequestWithUser) {
+    const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden();
+    const vendor = await this.store.findVendorProfileByUserId(user.id);
+    const printers = vendor ? await this.store.listPrintersByVendor(vendor.id) : [];
+    const capabilities = [...new Set(printers.flatMap((printer) => printer.processes))];
+    return { rfqs: (await this.store.listOpenRfqs()).filter((rfq) => canVendorQuoteProcess(capabilities, rfq.process)) };
+  }
 
   @Post('/rfqs/:id/quotes')
   @HttpCode(201)
   async createQuote(@Req() request: RequestWithUser, @Param('id') rfqId: string, @Body() body: unknown) {
     const { user } = await this.current(request); if (user.role !== 'PRINTER_OWNER') forbidden();
     const rfq = await this.store.findRfqById(rfqId); if (!rfq || rfq.state !== RfqState.OPEN_FOR_QUOTES) forbidden();
+    const openRfq = rfq!;
+    const vendor = await this.store.findVendorProfileByUserId(user.id);
+    const printers = vendor ? await this.store.listPrintersByVendor(vendor.id) : [];
+    if (!printers.some((printer) => printer.processes.includes(openRfq.process))) fail(422, 'CAPABILITY_MISMATCH', 'Your listed capabilities do not support this manufacturing process.');
     const parsed = createQuoteInputSchema.safeParse({ ...(body as Record<string, unknown>), rfqId });
     const data = parsed.success ? parsed.data : badRequest('Please provide a valid quote amount and lead time.');
     const quote = await this.store.createQuote({ rfqId, supplierId: user.id, state: QuoteState.VISIBLE_TO_BUYER, totalAmountInr: Math.ceil(data.amountPaise / 100), currency: 'INR', deliveryDate: new Date(Date.now() + data.leadTimeDays * 86400000), expiresAt: data.expiresAt ?? null, notes: data.notes ?? null });
-    await this.store.updateRfq(rfq!.id, { state: transitionRfq(rfq!.state, RfqState.QUOTES_RECEIVED) });
+    await this.store.updateRfq(openRfq.id, { state: transitionRfq(openRfq.state, RfqState.QUOTES_RECEIVED) });
     return { quote };
   }
 
@@ -160,6 +181,11 @@ export class MarketplaceController {
   async quotes(@Req() request: RequestWithUser, @Param('id') rfqId: string) {
     const { user } = await this.current(request); const rfq = await this.store.findRfqById(rfqId);
     if (!rfq || (rfq.buyerId !== user.id && user.role !== 'PRINTER_OWNER')) forbidden();
+    if (user.role === 'PRINTER_OWNER') {
+      const ownQuotes = (await this.store.listQuotesByRfq(rfq!.id)).filter((quote) => quote.supplierId === user.id);
+      if (ownQuotes.length === 0) forbidden();
+      return { quotes: ownQuotes };
+    }
     return { quotes: await this.store.listQuotesByRfq(rfqId) };
   }
 
@@ -185,8 +211,7 @@ export class MarketplaceController {
     const fileName = String(payload.fileName ?? '').trim(); const contentType = String(payload.contentType ?? '').trim(); const byteSize = Number(payload.byteSize);
     const types = ['model/stl', 'model/obj', 'model/step', 'model/3mf', 'application/octet-stream'];
     if (!fileName || fileName.length > 180 || !types.includes(contentType) || !Number.isSafeInteger(byteSize) || byteSize < 1 || byteSize > 100 * 1024 * 1024) badRequest('Unsupported or oversized design file.');
-    const env = getServerEnv();
-    if (!process.env.R2_ENDPOINT || env.R2_ENDPOINT.startsWith('http://localhost') || env.R2_ACCESS_KEY_ID.startsWith('development-')) fail(503, 'STORAGE_UNAVAILABLE', 'File storage is not configured.');
+    if (!process.env.R2_ENDPOINT || !process.env.R2_BUCKET || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) fail(503, 'STORAGE_UNAVAILABLE', 'File storage is not configured.');
     const key = `rfqs/${ownedRfq.id}/${createHash('sha256').update(`${user.id}:${fileName}:${Date.now()}`).digest('hex')}-${fileName}`;
     const uploadUrl = await this.storage.createUploadUrl({ key, contentType, byteSize });
     await this.store.createRfqFile({ rfqId: ownedRfq.id, storageKey: key, originalFilename: fileName, contentType, byteSize, state: 'PENDING' });

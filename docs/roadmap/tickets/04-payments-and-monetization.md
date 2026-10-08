@@ -24,3 +24,7 @@
 ## Dependencies
 
 Production order lifecycle, legal/tax review, verified business payment account.
+
+## Current bounded slice
+
+The shared domain now contains server-side payment states, guarded transitions, a production-payment gate, and an INR settlement calculator using integer paise. This is provider-neutral groundwork only; persisted orders, signed webhook verification/idempotency, receipts, refunds, and payouts remain blocked on the production order model and provider account setup.

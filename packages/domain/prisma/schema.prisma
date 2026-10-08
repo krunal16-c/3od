@@ -33,6 +33,34 @@ enum QuoteState {
   EXPIRED
 }
 
+enum OrderStatus {
+  ACCEPTED
+  AWAITING_PAYMENT
+  IN_PRODUCTION
+  QUALITY_CHECK
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  DISPUTED
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  ORDER_STATUS_CHANGED
+  DELIVERY_CONFIRMED
+}
+
+enum ManufacturingProcess {
+  THREE_D_PRINTING @map("3d_printing")
+  cnc_milling
+  cnc_turning
+  laser_cutting
+  fabrication
+  waterjet_cutting
+  vacuum_forming
+  injection_molding
+}
+
 enum RfqFileState {
   PENDING
   VALIDATED
@@ -55,6 +83,9 @@ model User {
   sessions     Session[]
   rfqs         Rfq[]     @relation("RfqBuyer")
   quotes       Quote[]   @relation("QuoteSupplier")
+  buyerOrders  Order[]   @relation("BuyerOrders")
+  vendorOrders Order[]   @relation("VendorOrders")
+  notifications Notification[]
   auditEvents  AuditEvent[]
   vendorProfile  VendorProfile?
   buyerContacts  VendorContact[] @relation("BuyerContacts")
@@ -90,13 +121,28 @@ model Printer {
   model            String?
   technologies     String[] @default([])
   materials        String[] @default([])
+  processes        ManufacturingProcess[] @default([THREE_D_PRINTING])
+  leadTimeDays     Int      @default(5)
   minOrderQuantity Int      @default(1)
   isActive         Boolean  @default(true)
   vendor           VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  blackouts        PrinterBlackout[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   @@index([vendorId, isActive])
+}
+
+model PrinterBlackout {
+  id        String   @id @default(cuid())
+  printerId String
+  startsOn  DateTime
+  endsOn    DateTime
+  reason    String?
+  printer   Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([printerId, startsOn, endsOn])
 }
 
 model VendorContact {
@@ -132,14 +178,20 @@ model Rfq {
   buyerId                String
   idempotencyKey         String
   title                  String
+  process                ManufacturingProcess @default(THREE_D_PRINTING)
   state                  RfqState  @default(DRAFT)
   description            String?
   quantity               Int?
   material               String?
+  finish                 String?
   deadline               DateTime?
+  tolerance              String?
+  location               String?
+  shippingPreference     String?
   buyer                  User      @relation("RfqBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
   files                  RfqFile[]
   quotes                 Quote[]
+  order                  Order?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -177,9 +229,46 @@ model Quote {
   supplier       User       @relation("QuoteSupplier", fields: [supplierId], references: [id], onDelete: Restrict)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+  order          Order?
 
   @@index([rfqId, state, createdAt])
   @@index([supplierId, state, createdAt])
+}
+
+model Order {
+  id                  String      @id @default(cuid())
+  buyerId             String
+  vendorId            String
+  rfqId               String      @unique
+  quoteId             String      @unique
+  status              OrderStatus @default(ACCEPTED)
+  pickupAddress       String?
+  shippingAddress     String?
+  trackingNumber      String?
+  deliveryConfirmedAt DateTime?
+  buyer               User        @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Restrict)
+  vendor              User        @relation("VendorOrders", fields: [vendorId], references: [id], onDelete: Restrict)
+  rfq                 Rfq         @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  quote               Quote       @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  notifications       Notification[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([buyerId, createdAt])
+  @@index([vendorId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  orderId   String
+  type      NotificationType
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model AuditEvent {
